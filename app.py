@@ -5,7 +5,9 @@ from firebase_admin import credentials, auth, firestore, exceptions
 from datetime import datetime, date
 import requests
 
-# Initialize Firebase Admin SDK
+# ----------------------
+# Firebase Initialization
+# ----------------------
 if not firebase_admin._apps:
     try:
         firebase_config = dict(st.secrets["firebase"])
@@ -74,7 +76,9 @@ if 'firebase_user' not in st.session_state:
         'data_loaded': False,
         'page': "👤 User Profile",
         'dummy': False,
-        'show_forgot': False  # flag for showing forgot password form
+        'show_forgot': False,
+        # New state for onboarding reviews
+        'reviews_submitted': 0
     })
 
 # Read query parameters (read-only)
@@ -122,7 +126,6 @@ if not st.session_state.firebase_user:
                             st.session_state.show_forgot = False
                     except Exception as e:
                         st.error(f"Failed to send reset email: {str(e)}")
-
     with register_tab:
         with st.form("register_form"):
             new_email = st.text_input("New IBA Email")
@@ -144,7 +147,7 @@ if not st.session_state.firebase_user:
     st.stop()
 
 # ----------------------
-# Ensure User Profile is Completed
+# Profile Completion Functions
 # ----------------------
 def complete_profile():
     st.header("Complete Your Profile")
@@ -168,27 +171,22 @@ def complete_profile():
                 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
                 user_ref.set(profile_data, merge=True)
                 st.success("Profile saved!")
-                # Removed st.experimental_rerun()
-                # If you want an immediate page refresh, you can do:
-                st.query_params = {"page": 👤 "User Profile"}
-                # or simply prompt the user to navigate manually:
-                st.info("Please navigate to the next page or refresh to continue.")
+                st.info("Now please submit 2 reviews for onboarding.")
+                # Set query param to the onboarding reviews page (or "User Profile" if that page handles onboarding)
+                st.query_params = {"page": "👤 User Profile"}
+                st.stop()
             except Exception as e:
                 st.error(f"Failed to save profile: {str(e)}")
 
 # Check if profile exists and is complete
 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
 user_doc = user_ref.get()
-profile_completed = False
 if user_doc.exists:
     user_profile_data = user_doc.to_dict()
     profile_completed = user_profile_data.get("profile_completed", False)
 else:
     user_profile_data = {}
-
-if not profile_completed:
-    complete_profile()
-    st.stop()
+    profile_completed = False
 
 # ----------------------
 # Data Management Functions
@@ -239,15 +237,14 @@ def save_bookmarks():
     except Exception as e:
         st.error(f"Failed to save bookmarks: {str(e)}")
 
-def save_review(review_data):
+def save_review(review_data, edit=False, review_doc_id=None):
     try:
         reviews_ref = db.collection("reviews")
-        if st.session_state.edit_review_index is not None:
-            doc_id = st.session_state.reviews[st.session_state.edit_review_index]['id']
-            reviews_ref.document(doc_id).update(review_data)
+        if edit and review_doc_id:
+            reviews_ref.document(review_doc_id).update(review_data)
         else:
-            review_data['upvoters'] = []
-            review_data['bookmarkers'] = []
+            review_data['upvoters'] = review_data.get('upvoters', [])
+            review_data['bookmarkers'] = review_data.get('bookmarkers', [])
             new_doc = reviews_ref.add(review_data)
             review_data['id'] = new_doc[1].id
         load_data()  # Refresh data after save
@@ -278,6 +275,107 @@ def validate_stipend(stipend):
         return False
 
 # ----------------------
+# Reusable Review Form Function
+# ----------------------
+def review_form(review_to_edit=None):
+    """
+    Returns a dictionary with review data if the form is submitted, else None.
+    If review_to_edit is provided, the form will populate with its values.
+    """
+    st.subheader("Submit Your Review")
+    # Option to post with full name or anonymously
+    post_option = st.radio("How would you like to post your review?",
+                           ["Use my full name", "Post Anonymously"],
+                           index=0)
+    col1, col2 = st.columns(2)
+    with col1:
+        company_options = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble', 'Nestlé Pakistan', 
+                            'L’Oréal Pakistan', 'Coca-Cola Pakistan', 'PepsiCo Pakistan', 'Other']
+        default_company = review_to_edit['Company'] if review_to_edit else company_options[0]
+        if default_company not in company_options:
+            default_company = 'Other'
+        company = st.selectbox("Company", company_options, index=company_options.index(default_company))
+        custom_company = ""
+        if company == 'Other':
+            custom_company = st.text_input("Custom Company", value=review_to_edit.get("Custom Company", "") if review_to_edit else "")
+        industry_options = ["Tech", "Finance", "Marketing", "HR", "Other"]
+        default_industry = review_to_edit['Industry'] if review_to_edit else "Tech"
+        industry = st.selectbox("Industry", industry_options, index=industry_options.index(default_industry))
+        ease_process_options = ["Easy", "Moderate", "Hard"]
+        default_ease = review_to_edit['Ease of Process'] if review_to_edit else "Easy"
+        ease_process = st.selectbox("Ease of Process", ease_process_options, index=ease_process_options.index(default_ease))
+        assessments = st.text_area("Gamified Assessments", value=review_to_edit.get("Gamified Assessments", "") if review_to_edit else "")
+        interview_questions = st.text_area("Interview Questions", value=review_to_edit.get("Interview Questions", "") if review_to_edit else "")
+        stipend = st.text_input("Stipend Range (Rs) (Optional)", value=review_to_edit.get("Stipend Range", "") if review_to_edit else "")
+    with col2:
+        hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, value=review_to_edit.get("Ease of Hiring", 3) if review_to_edit else 3)
+        referral = st.radio("Referral Used?", ["Yes", "No"], index=["Yes", "No"].index(review_to_edit.get("Referral Used", "Yes")) if review_to_edit else 0)
+        red_flags = st.slider("Red Flags (1-5)", 1, 5, value=review_to_edit.get("Red Flags", 3) if review_to_edit else 3)
+        department_options = ["Tech", "Finance", "HR", "Marketing", "Operations"]
+        default_dept = review_to_edit['Department'] if review_to_edit else "Tech"
+        department = st.selectbox("Department", department_options, index=department_options.index(default_dept))
+        semester = st.slider("Semester", 1, 8, value=review_to_edit.get("Semester", 5) if review_to_edit else 5)
+        outcome_options = ["Accepted", "Rejected", "In Process"]
+        default_outcome = review_to_edit['Offer Outcome'] if review_to_edit else "Accepted"
+        outcome = st.selectbox("Outcome", outcome_options, index=outcome_options.index(default_outcome))
+    
+    submitted = st.form_submit_button("Submit Review")
+    if submitted:
+        errors = []
+        if company == 'Other' and not custom_company:
+            errors.append("Company name required")
+        if not validate_stipend(stipend):
+            errors.append("Invalid stipend format (use 'min-max' or leave empty)")
+        if errors:
+            for error in errors:
+                st.error(error)
+            return None
+        else:
+            reviewer_name = (user_profile_data.get("full_name", "Anonymous")
+                             if post_option == "Use my full name"
+                             else "Anonymous")
+            review_data = {
+                'user_id': st.session_state.firebase_user["localId"],
+                'Company': custom_company if company == 'Other' else company,
+                'Industry': industry,
+                'Ease of Process': ease_process,
+                'Gamified Assessments': assessments,
+                'Interview Questions': interview_questions,
+                'Stipend Range': stipend if stipend else "Not Specified",
+                'Ease of Hiring': hiring_rating,
+                'Referral Used': referral,
+                'Red Flags': red_flags,
+                'Department': department,
+                'Semester': semester,
+                'Offer Outcome': outcome,
+                'reviewer_name': reviewer_name,
+                'timestamp': firestore.SERVER_TIMESTAMP
+            }
+            return review_data
+    return None
+
+# ----------------------
+# Onboarding Review Function
+# ----------------------
+def complete_onboarding_reviews():
+    st.header("Onboarding Reviews")
+    st.write("Please submit 2 reviews to complete your onboarding.")
+    review_data = review_form()
+    if review_data:
+        try:
+            save_review(review_data)
+            st.success("Review submitted!")
+            st.session_state.reviews_submitted += 1
+        except Exception as e:
+            st.error(f"Failed to save review: {str(e)}")
+    st.info(f"You have submitted {st.session_state.reviews_submitted} out of 2 required reviews.")
+    if st.session_state.reviews_submitted >= 2:
+        st.success("Onboarding complete! Navigating to your dashboard...")
+        st.session_state.page = "👤 User Profile"
+        st.query_params = {"page": "User Profile"}
+        st.stop()
+
+# ----------------------
 # Sidebar Navigation and Page Storage
 # ----------------------
 if "page" not in st.session_state:
@@ -291,7 +389,6 @@ st.session_state.page = page
 # User Profile Page
 # ----------------------
 def user_profile():
-    # Display the basic profile info at the top
     st.subheader("Your Profile Information")
     st.write(f"**Name:** {user_profile_data.get('full_name', 'N/A')}")
     st.write(f"**Age:** {user_profile_data.get('age', 'N/A')}")
@@ -299,7 +396,6 @@ def user_profile():
     st.write(f"**Program:** {user_profile_data.get('program', 'N/A')}")
     st.write(f"**Expected Graduation:** {user_profile_data.get('expected_grad_year', 'N/A')}")
     
-    # KPIs and rest of the dashboard below
     st.title('User Job Application Dashboard')
     kpis = calculate_kpis()
     cols = st.columns(3)
@@ -352,7 +448,7 @@ def user_profile():
     else:
         st.write("No bookmarked reviews.")
     
-    # Display Your Reviews (submitted reviews) with Edit Option
+    # Display Your Reviews with Edit Option
     st.header("Your Reviews")
     user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
                     if review.get("user_id") == st.session_state.firebase_user["localId"]]
@@ -366,9 +462,8 @@ def user_profile():
                 st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
-                st.query_params = {"page": "📰 Internship Feed"}
+                st.query_params = {"page": "Internship Feed"}
                 st.stop()
-
     else:
         st.write("You have not submitted any reviews yet.")
 
@@ -392,105 +487,19 @@ def internship_feed():
     
     if st.session_state.show_form:
         with st.form("review_form", clear_on_submit=True):
-            # Option to post with full name or anonymously
-            post_option = st.radio("How would you like to post your review?",
-                                     ["Use my full name", "Post Anonymously"],
-                                     index=0)
-            col1, col2 = st.columns(2)
-            with col1:
-                company_options = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble', 'Nestlé Pakistan', 
-                                    'L’Oréal Pakistan', 'Coca-Cola Pakistan', 'PepsiCo Pakistan', 'Philip Morris International', 
-                                    'British American Tobacco', 'Siemens Pakistan', 'Jazz', 'Telenor Pakistan', 'Zong', 
-                                    'Ufone', 'Ericsson Pakistan', 'Huawei Technologies Pakistan', 'Nokia Networks Pakistan', 
-                                    'Systems Limited', 'Teradata Pakistan', 'Afiniti', 'Habib Bank Limited', 'MCB Bank', 
-                                    'United Bank Limited', 'Standard Chartered Pakistan', 'Faysal Bank', 'Bank Alfalah', 
-                                    'Meezan Bank', 'State Bank of Pakistan', 'JS Bank', 'Askari Bank', 'Engro Corporation', 
-                                    'FrieslandCampina Pakistan', 'Mitchell’s Fruit Farms', 'Shan Foods', 'National Foods', 
-                                    'English Biscuit Manufacturers', 'Packages Limited', 'Service Industries Limited', 
-                                    'Interwood', 'Metro Cash & Carry', 'GlaxoSmithKline Pakistan', 'Sanofi Pakistan', 
-                                    'Novartis Pakistan', 'Getz Pharma', 'Searle Pakistan', 'Highnoon Laboratories', 
-                                    'Martin Dow Group', 'AGP Pharma', 'Descon Engineering', 'Fauji Fertilizer Company', 
-                                    'Lucky Cement', 'Cherat Cement', 'Attock Refinery Limited', 'Pakistan State Oil', 
-                                    'Shell Pakistan', 'Mari Petroleum', 'Ogilvy Pakistan', 'Interflow Communications', 
-                                    'Synergy Group', 'J. Walter Thompson Pakistan', 'Geo TV Network', 'Dawn Media Group', 
-                                    'Jang Media Group', 'Triconboston Consulting', 'Nishat Mills', 'Gul Ahmed Textile Mills', 
-                                    'Interloop Limited', 'Sapphire Textiles', 'Kohinoor Textile Mills', 'Chenab Group', 
-                                    'Sarena Textile Industries', 'Al-Karam Textiles', 'Toyota Indus Motors', 'Honda Atlas Cars Pakistan', 
-                                    'Suzuki Pakistan', 'Atlas Honda', 'K-Electric', 'Sui Southern Gas Company', 
-                                    'Sui Northern Gas Pipelines Limited', 'Altern Energy', 'Deloitte Pakistan', 'EY Ford Rhodes', 
-                                    'PwC Pakistan', 'KPMG Pakistan', 'A.F. Ferguson & Co.', 'Grant Thornton Pakistan', 'Careem', 
-                                    'Daraz', 'Bykea', 'Foodpanda', 'Tajir', 'Airlift', 'Finja', 'SadaPay', 'QisstPay', 
-                                    'Bookme', 'UNDP Pakistan', 'UNICEF Pakistan', 'World Bank Pakistan', 'WWF Pakistan', 
-                                    'Save the Children', 'Aga Khan Development Network', 'JDC Foundation Pakistan', 
-                                    'LUMS', 'IBA Karachi', 'NUST', 'FAST-NU', 'Other']
-                default_company = review_to_edit['Company'] if review_to_edit else 'Google'
-                if default_company in company_options:
-                    company = st.selectbox("Company", company_options, index=company_options.index(default_company))
+            review_data = review_form(review_to_edit)
+            if review_data:
+                if st.session_state.edit_review_index is not None:
+                    doc_id = st.session_state.reviews[st.session_state.edit_review_index]['id']
+                    save_review(review_data, edit=True, review_doc_id=doc_id)
                 else:
-                    company = st.selectbox("Company", company_options, index=company_options.index('Other'))
-                custom_company = st.text_input("Custom Company", value=review_to_edit.get("Custom Company", "") if review_to_edit and company=='Other' else "")
-                industry_options = ["Tech", "Finance", "Marketing", "HR", "Other"]
-                default_industry = review_to_edit['Industry'] if review_to_edit else "Tech"
-                industry = st.selectbox("Industry", industry_options, index=industry_options.index(default_industry))
-                ease_process_options = ["Easy", "Moderate", "Hard"]
-                default_ease = review_to_edit['Ease of Process'] if review_to_edit else "Easy"
-                ease_process = st.selectbox("Ease of Process", ease_process_options, index=ease_process_options.index(default_ease))
-                assessments = st.text_area("Gamified Assessments", value=review_to_edit.get("Gamified Assessments", "") if review_to_edit else "")
-                interview_questions = st.text_area("Interview Questions", value=review_to_edit.get("Interview Questions", "") if review_to_edit else "")
-                stipend = st.text_input("Stipend Range (Rs) (Optional)", value=review_to_edit.get("Stipend Range", "") if review_to_edit else "")
-            with col2:
-                hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, value=review_to_edit.get("Ease of Hiring", 3) if review_to_edit else 3)
-                referral = st.radio("Referral Used?", ["Yes", "No"], index=["Yes", "No"].index(review_to_edit.get("Referral Used", "Yes")) if review_to_edit else 0)
-                red_flags = st.slider("Red Flags (1-5)", 1, 5, value=review_to_edit.get("Red Flags", 3) if review_to_edit else 3)
-                department_options = ["Tech", "Finance", "HR", "Marketing", "Operations"]
-                default_dept = review_to_edit['Department'] if review_to_edit else "Tech"
-                department = st.selectbox("Department", department_options, index=department_options.index(default_dept))
-                semester = st.slider("Semester", 1, 8, value=review_to_edit.get("Semester", 5) if review_to_edit else 5)
-                outcome_options = ["Accepted", "Rejected", "In Process"]
-                default_outcome = review_to_edit['Offer Outcome'] if review_to_edit else "Accepted"
-                outcome = st.selectbox("Outcome", outcome_options, index=outcome_options.index(default_outcome))
-            if st.form_submit_button("Submit Review"):
-                errors = []
-                if company == 'Other' and not custom_company:
-                    errors.append("Company name required")
-                if not validate_stipend(stipend):
-                    errors.append("Invalid stipend format (use 'min-max' or leave empty)")
-                if errors:
-                    for error in errors:
-                        st.error(error)
-                else:
-                    reviewer_name = (
-                        user_profile_data.get("full_name", "Anonymous")
-                        if post_option == "Use my full name"
-                        else "Anonymous"
-                    )
-                    new_review = {
-                        'user_id': st.session_state.firebase_user["localId"],
-                        'Company': custom_company if company == 'Other' else company,
-                        'Industry': industry,
-                        'Ease of Process': ease_process,
-                        'Gamified Assessments': assessments,
-                        'Interview Questions': interview_questions,
-                        'Stipend Range': stipend if stipend else "Not Specified",
-                        'Ease of Hiring': hiring_rating,
-                        'Referral Used': referral,
-                        'Red Flags': red_flags,
-                        'Department': department,
-                        'Semester': semester,
-                        'Offer Outcome': outcome,
-                        'reviewer_name': reviewer_name,
-                        'upvoters': review_to_edit.get("upvoters", []) if review_to_edit else [],
-                        'bookmarkers': review_to_edit.get("bookmarkers", []) if review_to_edit else [],
-                        'timestamp': firestore.SERVER_TIMESTAMP
-                    }
-                    save_review(new_review)
-                    st.success("Review Submitted!")
-                    # Close review form after submission
-                    st.session_state.show_form = False
-                    st.session_state.edit_review_index = None
-                    st.session_state.page = "📰 Internship Feed"
-                    st.query_params = {"page": "📰 Internship Feed"}
-                    st.session_state.dummy = not st.session_state.get("dummy", False)
+                    save_review(review_data)
+                st.success("Review Submitted!")
+                st.session_state.show_form = False
+                st.session_state.edit_review_index = None
+                st.session_state.page = "📰 Internship Feed"
+                st.query_params = {"page": "Internship Feed"}
+                st.stop()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
@@ -551,6 +560,19 @@ def internship_feed():
                         review_ref.update({"bookmarkers": firestore.ArrayUnion([user_id])})
                         load_data()
 
+# ----------------------
+# Main Flow Control
+# ----------------------
+# If profile is not complete, show the profile form.
+if not profile_completed:
+    complete_profile()
+    st.stop()
+# If the profile is complete but onboarding reviews are not done, force review submissions.
+elif st.session_state.reviews_submitted < 2:
+    complete_onboarding_reviews()
+    st.stop()
+
+# Render pages based on sidebar navigation
 if st.session_state.page == "👤 User Profile":
     user_profile()
 else:
