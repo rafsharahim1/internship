@@ -360,9 +360,11 @@ def user_profile():
             col1.caption(f"Reviewed by: {reviewer_display}")
             if col2.button("Edit", key=f"edit_{i}"):
                 st.session_state.edit_review_index = i
+                st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
                 st.query_params = {"page": "📰 Internship Feed"}
                 st.stop()
+
     else:
         st.write("You have not submitted any reviews yet.")
 
