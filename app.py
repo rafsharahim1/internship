@@ -376,7 +376,7 @@ def internship_feed():
     col1, col2, col3, col4 = st.columns([2,2,2,1])
     company_search = col1.text_input("Search by Company")
     industry_filter = col2.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
-    stipend_range = col3.slider("Stipend Range (₹)", 0, 150000, (30000, 100000))
+    stipend_range = col3.slider("Stipend Range (Rs)", 0, 150000, (30000, 100000))
     
     if col4.button("➕ Add Review"):
         st.session_state.show_form = True
@@ -409,7 +409,7 @@ def internship_feed():
                 ease_process = st.selectbox("Ease of Process", ease_process_options, index=ease_process_options.index(default_ease))
                 assessments = st.text_area("Gamified Assessments", value=review_to_edit.get("Gamified Assessments", "") if review_to_edit else "")
                 interview_questions = st.text_area("Interview Questions", value=review_to_edit.get("Interview Questions", "") if review_to_edit else "")
-                stipend = st.text_input("Stipend Range (₹) (Optional)", value=review_to_edit.get("Stipend Range", "") if review_to_edit else "")
+                stipend = st.text_input("Stipend Range (Rs) (Optional)", value=review_to_edit.get("Stipend Range", "") if review_to_edit else "")
             with col2:
                 hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, value=review_to_edit.get("Ease of Hiring", 3) if review_to_edit else 3)
                 referral = st.radio("Referral Used?", ["Yes", "No"], index=["Yes", "No"].index(review_to_edit.get("Referral Used", "Yes")) if review_to_edit else 0)
