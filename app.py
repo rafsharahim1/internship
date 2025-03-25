@@ -170,7 +170,7 @@ def complete_profile():
                 st.success("Profile saved!")
                 # Removed st.experimental_rerun()
                 # If you want an immediate page refresh, you can do:
-                # st.experimental_set_query_params(page="👤 User Profile")
+                st.query_params = {"page": 👤 "User Profile"}
                 # or simply prompt the user to navigate manually:
                 st.info("Please navigate to the next page or refresh to continue.")
             except Exception as e:
