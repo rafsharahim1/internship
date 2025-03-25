@@ -168,7 +168,11 @@ def complete_profile():
                 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
                 user_ref.set(profile_data, merge=True)
                 st.success("Profile saved!")
-                st.experimental_rerun()  # Refresh to show dashboard with profile info
+                # Removed st.experimental_rerun()
+                # If you want an immediate page refresh, you can do:
+                # st.experimental_set_query_params(page="👤 User Profile")
+                # or simply prompt the user to navigate manually:
+                st.info("Please navigate to the next page or refresh to continue.")
             except Exception as e:
                 st.error(f"Failed to save profile: {str(e)}")
 
@@ -455,7 +459,11 @@ def internship_feed():
                     for error in errors:
                         st.error(error)
                 else:
-                    reviewer_name = user_profile_data.get("full_name", "Anonymous") if post_option == "Use my full name" else "Anonymous"
+                    reviewer_name = (
+                        user_profile_data.get("full_name", "Anonymous")
+                        if post_option == "Use my full name"
+                        else "Anonymous"
+                    )
                     new_review = {
                         'user_id': st.session_state.firebase_user["localId"],
                         'Company': custom_company if company == 'Other' else company,
@@ -505,7 +513,7 @@ def internship_feed():
     
     st.subheader("Top Reviews")
     for idx, review in enumerate(sorted(filtered_reviews, key=lambda x: len(x.get("upvoters", [])), reverse=True)[:5]):
-        with st.container(border=True):
+        with st.container():
             col1, col2 = st.columns([4,1])
             with col1:
                 st.markdown(f"### {review['Company']} ({review['Industry']})")
