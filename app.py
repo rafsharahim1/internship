@@ -394,7 +394,31 @@ def internship_feed():
                                      index=0)
             col1, col2 = st.columns(2)
             with col1:
-                company_options = ['Google', 'Microsoft', 'Goldman Sachs', 'Other']
+                company_options = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble', 'Nestlé Pakistan', 
+                                    'L’Oréal Pakistan', 'Coca-Cola Pakistan', 'PepsiCo Pakistan', 'Philip Morris International', 
+                                    'British American Tobacco', 'Siemens Pakistan', 'Jazz', 'Telenor Pakistan', 'Zong', 
+                                    'Ufone', 'Ericsson Pakistan', 'Huawei Technologies Pakistan', 'Nokia Networks Pakistan', 
+                                    'Systems Limited', 'Teradata Pakistan', 'Afiniti', 'Habib Bank Limited', 'MCB Bank', 
+                                    'United Bank Limited', 'Standard Chartered Pakistan', 'Faysal Bank', 'Bank Alfalah', 
+                                    'Meezan Bank', 'State Bank of Pakistan', 'JS Bank', 'Askari Bank', 'Engro Corporation', 
+                                    'FrieslandCampina Pakistan', 'Mitchell’s Fruit Farms', 'Shan Foods', 'National Foods', 
+                                    'English Biscuit Manufacturers', 'Packages Limited', 'Service Industries Limited', 
+                                    'Interwood', 'Metro Cash & Carry', 'GlaxoSmithKline Pakistan', 'Sanofi Pakistan', 
+                                    'Novartis Pakistan', 'Getz Pharma', 'Searle Pakistan', 'Highnoon Laboratories', 
+                                    'Martin Dow Group', 'AGP Pharma', 'Descon Engineering', 'Fauji Fertilizer Company', 
+                                    'Lucky Cement', 'Cherat Cement', 'Attock Refinery Limited', 'Pakistan State Oil', 
+                                    'Shell Pakistan', 'Mari Petroleum', 'Ogilvy Pakistan', 'Interflow Communications', 
+                                    'Synergy Group', 'J. Walter Thompson Pakistan', 'Geo TV Network', 'Dawn Media Group', 
+                                    'Jang Media Group', 'Triconboston Consulting', 'Nishat Mills', 'Gul Ahmed Textile Mills', 
+                                    'Interloop Limited', 'Sapphire Textiles', 'Kohinoor Textile Mills', 'Chenab Group', 
+                                    'Sarena Textile Industries', 'Al-Karam Textiles', 'Toyota Indus Motors', 'Honda Atlas Cars Pakistan', 
+                                    'Suzuki Pakistan', 'Atlas Honda', 'K-Electric', 'Sui Southern Gas Company', 
+                                    'Sui Northern Gas Pipelines Limited', 'Altern Energy', 'Deloitte Pakistan', 'EY Ford Rhodes', 
+                                    'PwC Pakistan', 'KPMG Pakistan', 'A.F. Ferguson & Co.', 'Grant Thornton Pakistan', 'Careem', 
+                                    'Daraz', 'Bykea', 'Foodpanda', 'Tajir', 'Airlift', 'Finja', 'SadaPay', 'QisstPay', 
+                                    'Bookme', 'UNDP Pakistan', 'UNICEF Pakistan', 'World Bank Pakistan', 'WWF Pakistan', 
+                                    'Save the Children', 'Aga Khan Development Network', 'JDC Foundation Pakistan', 
+                                    'LUMS', 'IBA Karachi', 'NUST', 'FAST-NU''Other']
                 default_company = review_to_edit['Company'] if review_to_edit else 'Google'
                 if default_company in company_options:
                     company = st.selectbox("Company", company_options, index=company_options.index(default_company))
