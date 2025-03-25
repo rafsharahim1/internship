@@ -334,8 +334,6 @@ def user_profile():
         st.session_state.applications = edited_df
         save_applications()
     
-    
-    
     # Display Bookmarked Reviews
     current_user = st.session_state.firebase_user["localId"]
     bookmarked_reviews = [review for review in st.session_state.reviews if current_user in review.get("bookmarkers", [])]
@@ -418,7 +416,7 @@ def internship_feed():
                                     'Daraz', 'Bykea', 'Foodpanda', 'Tajir', 'Airlift', 'Finja', 'SadaPay', 'QisstPay', 
                                     'Bookme', 'UNDP Pakistan', 'UNICEF Pakistan', 'World Bank Pakistan', 'WWF Pakistan', 
                                     'Save the Children', 'Aga Khan Development Network', 'JDC Foundation Pakistan', 
-                                    'LUMS', 'IBA Karachi', 'NUST', 'FAST-NU''Other']
+                                    'LUMS', 'IBA Karachi', 'NUST', 'FAST-NU', 'Other']
                 default_company = review_to_edit['Company'] if review_to_edit else 'Google'
                 if default_company in company_options:
                     company = st.selectbox("Company", company_options, index=company_options.index(default_company))
@@ -482,9 +480,7 @@ def internship_feed():
                     st.session_state.edit_review_index = None
                     st.session_state.page = "📰 Internship Feed"
                     st.query_params = {"page": "📰 Internship Feed"}
-                    #st.experimental_rerun()
                     st.session_state.dummy = not st.session_state.get("dummy", False)
-                    #st.stop()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
