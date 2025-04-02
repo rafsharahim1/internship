@@ -167,7 +167,7 @@ def complete_profile():
                 st.error(f"Profile save failed: {str(e)}")
 
 # ----------------------
-# Review Components
+# Onboarding Components
 # ----------------------
 def validate_stipend(stipend):
     if not stipend:
@@ -238,9 +238,6 @@ def get_review_form(step):
                     st.error(error)
                 return None
 
-# ----------------------
-# Onboarding Process
-# ----------------------
 def onboarding_process():
     st.header("Complete Onboarding (2 Reviews Required)")
     current_step = st.session_state.current_review_step
@@ -283,7 +280,7 @@ def onboarding_process():
                 st.rerun()
 
 # ----------------------
-# Main Application Pages
+# Main Application Pages (Integrated UI)
 # ----------------------
 def user_profile_page():
     st.header("👤 User Profile")
@@ -302,6 +299,7 @@ def user_profile_page():
         st.write(f"**Semester:** {user_profile.get('semester', 'N/A')}")
         st.write(f"**Graduation Year:** {user_profile.get('expected_grad_year', 'N/A')}")
     
+    # Application Tracker
     st.subheader("Applications Tracker")
     with st.expander("➕ Add New Application"):
         with st.form("new_application"):
@@ -376,9 +374,9 @@ def internship_feed_page():
 # ----------------------
 # Check profile completion
 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
-user_profile = user_ref.get().to_dict()
+user_profile = user_ref.get()
 
-if not user_profile or not user_profile.get("profile_completed"):
+if not user_profile.exists or not user_profile.to_dict().get("profile_completed"):
     complete_profile()
     st.stop()
 
