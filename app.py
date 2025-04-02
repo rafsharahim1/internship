@@ -357,23 +357,66 @@ def review_form(review_to_edit=None):
 # ----------------------
 # Onboarding Review Function
 # ----------------------
+# ... [Keep all the previous code until the complete_onboarding_reviews function] ...
+
+# ----------------------
+# Enhanced Onboarding Review Function with Progress and Navigation
+# ----------------------
 def complete_onboarding_reviews():
-    st.header("Onboarding Reviews")
-    st.write("Please submit 2 reviews to complete your onboarding.")
+    st.header("Onboarding Reviews 🔄")
+    total_reviews_needed = 2
+    submitted = st.session_state.reviews_submitted
+
+    # Progress bar
+    progress = submitted / total_reviews_needed
+    st.progress(progress)
+
+    # Step indicator with arrows
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown(f"""
+        <div style="text-align: center; margin: 20px 0;">
+            <span style="font-size: 24px; color: {'#4CAF50' if submitted >=1 else 'gray'};">◀</span>
+            <span style="font-size: 24px; margin: 0 10px;">Step {submitted + 1} of {total_reviews_needed}</span>
+            <span style="font-size: 24px; color: {'#4CAF50' if submitted <2 else 'gray'};">▶</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Review form
+    st.subheader(f"Review {submitted + 1}")
     review_data = review_form()
+    
     if review_data:
         try:
             save_review(review_data)
-            st.success("Review submitted!")
             st.session_state.reviews_submitted += 1
+            st.success("Review submitted! ✅")
+            
+            if st.session_state.reviews_submitted >= total_reviews_needed:
+                st.balloons()
+                st.success("Onboarding complete! 🎉 Navigating to dashboard...")
+                st.session_state.page = "👤 User Profile"
+                st.query_params = {"page": "User Profile"}
+                st.stop()
+            else:
+                st.experimental_rerun()  # Refresh to show next form
+                
         except Exception as e:
             st.error(f"Failed to save review: {str(e)}")
-    st.info(f"You have submitted {st.session_state.reviews_submitted} out of 2 required reviews.")
-    if st.session_state.reviews_submitted >= 2:
-        st.success("Onboarding complete! Navigating to your dashboard...")
-        st.session_state.page = "👤 User Profile"
-        st.query_params = {"page": "User Profile"}
-        st.stop()
+
+    # Navigation buttons
+    nav_col1, nav_col2 = st.columns(2)
+    with nav_col1:
+        if submitted > 0:
+            if st.button("← Previous Review"):
+                st.session_state.reviews_submitted -= 1
+                st.experimental_rerun()
+    with nav_col2:
+        if submitted < total_reviews_needed:
+            if st.button(f"Next Review →", disabled=(submitted >= total_reviews_needed)):
+                pass
+
+
 
 # ----------------------
 # Sidebar Navigation and Page Storage
