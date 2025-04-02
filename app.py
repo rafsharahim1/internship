@@ -33,10 +33,7 @@ def handle_auth_error(e):
         "USER_DISABLED": "Account disabled",
         "EMAIL_EXISTS": "Email already registered"
     }
-    if hasattr(e, "code"):
-        return error_messages.get(e.code, f"Authentication error: {str(e)}")
-    else:
-        return f"Authentication error: {str(e)}"
+    return error_messages.get(str(e), f"Authentication error: {str(e)}")
 
 def sign_in_with_email_and_password(email, password):
     api_key = st.secrets["firebase"]["apiKey"]
@@ -76,7 +73,8 @@ if 'firebase_user' not in st.session_state:
         'show_forgot': False,
         'reviews_submitted': 0,
         'current_review_step': 0,
-        'review_data': [{} for _ in range(2)]
+        'review_data': [{} for _ in range(2)],
+        'user_profile': {}
     })
 
 # ----------------------
@@ -162,7 +160,7 @@ def complete_profile():
             }
             try:
                 db.collection("users").document(st.session_state.firebase_user["localId"]).set(profile_data, merge=True)
-                st.success("Profile saved!")
+                st.session_state.user_profile = profile_data
                 st.session_state.reviews_submitted = 0
                 st.rerun()
             except Exception as e:
@@ -171,8 +169,16 @@ def complete_profile():
 # ----------------------
 # Review Components
 # ----------------------
-def get_review_inputs(step):
-    st.subheader(f"Review {step + 1}")
+def validate_stipend(stipend):
+    if not stipend:
+        return True
+    try:
+        parts = stipend.split('-')
+        return len(parts) == 2 and all(part.strip().isdigit() for part in parts)
+    except:
+        return False
+
+def get_review_form(step):
     with st.form(key=f"review_form_{step}"):
         col1, col2 = st.columns(2)
         
@@ -202,15 +208,15 @@ def get_review_inputs(step):
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"], key=f"post_{step}")
 
+        errors = []
+        if company == 'Other' and not custom_company:
+            errors.append("Company name required")
+        if stipend and not validate_stipend(stipend):
+            errors.append("Invalid stipend format (use 'min-max')")
+        
         submitted = st.form_submit_button("Submit Review ➡️")
         
         if submitted:
-            errors = []
-            if company == 'Other' and not custom_company:
-                errors.append("Company name required")
-            if stipend and not validate_stipend(stipend):
-                errors.append("Invalid stipend format (use 'min-max')")
-            
             if not errors:
                 return {
                     'company': custom_company if company == 'Other' else company,
@@ -237,17 +243,16 @@ def get_review_inputs(step):
 # ----------------------
 def onboarding_process():
     st.header("Complete Onboarding (2 Reviews Required)")
-    progress = st.session_state.current_review_step / 2
+    current_step = st.session_state.current_review_step
+    progress = (current_step + 1) / 2
     st.progress(progress)
     
-    current_step = st.session_state.current_review_step
-    review_data = get_review_inputs(current_step)
+    review_data = get_review_form(current_step)
     
     if review_data:
         st.session_state.review_data[current_step] = review_data
-        st.session_state.current_review_step += 1
         
-        if st.session_state.current_review_step >= 2:
+        if current_step == 1:
             try:
                 for i in range(2):
                     data = st.session_state.review_data[i]
@@ -267,21 +272,23 @@ def onboarding_process():
             except Exception as e:
                 st.error(f"Failed to save reviews: {str(e)}")
         else:
+            st.session_state.current_review_step += 1
             st.rerun()
     
-    if st.button("← Previous") and current_step > 0:
-        st.session_state.current_review_step -= 1
-        st.rerun()
+    col1, col2 = st.columns(2)
+    with col1:
+        if current_step > 0:
+            if st.button("← Previous"):
+                st.session_state.current_review_step -= 1
+                st.rerun()
 
 # ----------------------
 # Main Application Pages
 # ----------------------
 def user_profile_page():
     st.header("👤 User Profile")
-    
-    # Profile display
     user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
-    user_profile = user_ref.get().to_dict()
+    user_profile = user_ref.get().to_dict() or {}
     
     col1, col2 = st.columns(2)
     with col1:
@@ -295,7 +302,6 @@ def user_profile_page():
         st.write(f"**Semester:** {user_profile.get('semester', 'N/A')}")
         st.write(f"**Graduation Year:** {user_profile.get('expected_grad_year', 'N/A')}")
     
-    # Application tracker
     st.subheader("Applications Tracker")
     with st.expander("➕ Add New Application"):
         with st.form("new_application"):
@@ -323,7 +329,6 @@ def user_profile_page():
                   .collection("applications").add(new_app)
                 st.rerun()
     
-    # Display applications
     apps = db.collection("users").document(st.session_state.firebase_user["localId"]) \
            .collection("applications").stream()
     app_data = [app.to_dict() for app in apps]
@@ -336,13 +341,11 @@ def user_profile_page():
 def internship_feed_page():
     st.header("📰 Internship Feed")
     
-    # Filters
     col1, col2, col3 = st.columns(3)
     company_filter = col1.text_input("Search Company")
     industry_filter = col2.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
     stipend_filter = col3.slider("Stipend Range (Rs)", 0, 150000, (30000, 100000))
     
-    # Display reviews
     reviews = db.collection("reviews").stream()
     for review in reviews:
         rdata = review.to_dict()
