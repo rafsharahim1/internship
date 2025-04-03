@@ -168,7 +168,8 @@ def complete_profile():
                 "semester": semester,
                 "program": program,
                 "expected_grad_year": grad_year,
-                "profile_completed": True
+                "profile_completed": True,
+                "onboarding_complete": False  # Initially false
             }
             try:
                 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
@@ -186,9 +187,11 @@ user_doc = user_ref.get()
 if user_doc.exists:
     user_profile_data = user_doc.to_dict()
     profile_completed = user_profile_data.get("profile_completed", False)
+    onboarding_complete = user_profile_data.get("onboarding_complete", False)
 else:
     user_profile_data = {}
     profile_completed = False
+    onboarding_complete = False
 
 # ----------------------
 # Data Management Functions
@@ -356,6 +359,8 @@ def onboarding_process():
                     }
                     db.collection("reviews").add(review)
                 st.balloons()
+                # Update onboarding_complete in the user's document
+                db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
                 st.session_state.reviews_submitted = 2
                 st.session_state.page = "👤 User Profile"
                 st.rerun()
@@ -565,7 +570,7 @@ if not profile_completed:
     complete_profile()
     st.stop()
 # If the profile is complete but onboarding reviews are not done, force review submissions.
-elif st.session_state.reviews_submitted < 2:
+elif not onboarding_complete:
     onboarding_process()
     st.stop()
 
