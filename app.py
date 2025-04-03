@@ -85,7 +85,6 @@ if 'firebase_user' not in st.session_state:
         'profile_saved': False  # Flag for profile saved
     })
 
-# Read query parameters (read-only)
 query_params = st.query_params
 if "page" in query_params:
     st.session_state.page = query_params["page"][0]
@@ -178,13 +177,11 @@ def complete_profile():
                 st.session_state.profile_saved = True
             except Exception as e:
                 st.error(f"Failed to save profile: {str(e)}")
-    # Show Next button outside the form if profile is saved
     if st.session_state.get("profile_saved", False):
         if st.button("Next"):
             st.session_state.page = "Onboarding"
             st.stop()
 
-# Check if profile exists and is complete
 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
 user_doc = user_ref.get()
 if user_doc.exists:
@@ -255,7 +252,7 @@ def save_review(review_data, edit=False, review_doc_id=None):
             review_data['bookmarkers'] = review_data.get('bookmarkers', [])
             new_doc = reviews_ref.add(review_data)
             review_data['id'] = new_doc[1].id
-        load_data()  # Refresh data after save
+        load_data()
     except Exception as e:
         st.error(f"Failed to save review: {str(e)}")
 
@@ -286,7 +283,6 @@ def validate_stipend(stipend):
 # New Editable Review Form Function
 # ----------------------
 def review_form(review_to_edit=None):
-    # Define available options
     companies = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
                  'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
                  'PepsiCo Pakistan', 'Other']
@@ -295,7 +291,6 @@ def review_form(review_to_edit=None):
     outcomes = ["Accepted", "Rejected", "In Process"]
     departments = ["Tech", "Finance", "HR", "Marketing", "Operations"]
     
-    # Determine default indices based on review_to_edit if available
     default_company = review_to_edit.get("Company", companies[0]) if review_to_edit else companies[0]
     default_company_index = companies.index(default_company) if default_company in companies else companies.index("Other")
     
@@ -364,10 +359,8 @@ def review_form(review_to_edit=None):
             return review_data
     return None
 
-# ----------------------
-# New Onboarding Functions
-# ----------------------
 def get_review_form(step):
+    # Onboarding review form; similar to edit but without pre-population.
     with st.form(key=f"onboarding_review_form_{step}"):
         col1, col2 = st.columns(2)
         with col1:
@@ -430,7 +423,6 @@ def onboarding_process():
     
     if review_data:
         st.session_state.review_data[current_step] = review_data
-        
         if current_step == 1:
             try:
                 for i in range(2):
@@ -469,7 +461,6 @@ if "page" not in st.session_state:
 
 page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed"),
                           index=0 if st.session_state.get("page", "👤 User Profile") == "👤 User Profile" else 1)
-# Force Onboarding page if profile is complete but onboarding not done
 if profile_completed and not onboarding_complete:
     st.session_state.page = "Onboarding"
 else:
@@ -548,11 +539,12 @@ def user_profile():
             reviewer_display = review.get("reviewer_name", "Anonymous")
             col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
             col1.caption(f"Reviewed by: {reviewer_display}")
-            # Edit button pre-populates form by setting edit_review_index and show_form
+            # When Edit is clicked, immediately switch to the feed and pre-populate the form.
             if col2.button("Edit", key=f"edit_{i}"):
                 st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
+                internship_feed()  # directly display the feed with the edit form
                 st.stop()
     else:
         st.write("You have not submitted any reviews yet.")
