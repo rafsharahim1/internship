@@ -462,23 +462,26 @@ def user_profile():
         st.write("No bookmarked reviews.")
     
     # Display Your Reviews with Edit Option
-    st.header("Your Reviews")
-    user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
-                    if review.get("user_id") == st.session_state.firebase_user["localId"]]
-    if user_reviews:
-        for i, review in user_reviews:
-            col1, col2 = st.columns([8,2])
-            reviewer_display = review.get("reviewer_name", "Anonymous")
-            col1.markdown(f"**{review['Company']} ({review['Industry']})** - {review['Offer Outcome']}")
-            col1.caption(f"Reviewed by: {reviewer_display}")
-            if col2.button("Edit", key=f"edit_{i}"):
-                st.session_state.edit_review_index = i
-                st.session_state.show_form = True  
-                st.session_state.page = "📰 Internship Feed"
-                st.query_params = {"page": "Internship Feed"}
-                st.stop()
-    else:
-        st.write("You have not submitted any reviews yet.")
+    # Display Your Reviews with Edit Option
+st.header("Your Reviews")
+user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
+                if review.get("user_id") == st.session_state.firebase_user["localId"]]
+if user_reviews:
+    for i, review in user_reviews:
+        col1, col2 = st.columns([8,2])
+        reviewer_display = review.get("reviewer_name", "Anonymous")
+        # Use .get() to safely access keys
+        col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
+        col1.caption(f"Reviewed by: {reviewer_display}")
+        if col2.button("Edit", key=f"edit_{i}"):
+            st.session_state.edit_review_index = i
+            st.session_state.show_form = True  
+            st.session_state.page = "📰 Internship Feed"
+            st.query_params = {"page": "Internship Feed"}
+            st.stop()
+else:
+    st.write("You have not submitted any reviews yet.")
+
 
 # ----------------------
 # Internship Feed Page
