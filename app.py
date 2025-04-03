@@ -182,7 +182,7 @@ def complete_profile():
     if st.session_state.get("profile_saved", False):
         if st.button("Next"):
             st.session_state.page = "Onboarding"
-            st.experimental_rerun()
+            st.rerun()
 
 # Check if profile exists and is complete
 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
@@ -554,7 +554,7 @@ def user_profile():
                 st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
-                st.experimental_rerun()
+                st.rerun()
     else:
         st.write("You have not submitted any reviews yet.")
 
@@ -588,7 +588,7 @@ def internship_feed():
             st.session_state.show_form = False
             st.session_state.edit_review_index = None
             st.session_state.page = "📰 Internship Feed"
-            st.experimental_rerun()
+            st.rerun()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
