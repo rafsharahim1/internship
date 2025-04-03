@@ -182,7 +182,7 @@ def complete_profile():
     if st.session_state.get("profile_saved", False):
         if st.button("Next"):
             st.session_state.page = "Onboarding"
-            st.rerun()
+            st.stop()
 
 # Check if profile exists and is complete
 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
@@ -368,7 +368,6 @@ def review_form(review_to_edit=None):
 # New Onboarding Functions
 # ----------------------
 def get_review_form(step):
-    # This function is used for the onboarding reviews
     with st.form(key=f"onboarding_review_form_{step}"):
         col1, col2 = st.columns(2)
         with col1:
@@ -448,19 +447,19 @@ def onboarding_process():
                 db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
                 st.session_state.reviews_submitted = 2
                 st.session_state.page = "👤 User Profile"
-                st.rerun()
+                st.stop()
             except Exception as e:
                 st.error(f"Failed to save reviews: {str(e)}")
         else:
             st.session_state.current_review_step += 1
-            st.rerun()
+            st.stop()
     
     col1, col2 = st.columns(2)
     with col1:
         if current_step > 0:
             if st.button("← Previous"):
                 st.session_state.current_review_step -= 1
-                st.rerun()
+                st.stop()
 
 # ----------------------
 # Sidebar Navigation and Page Storage
@@ -549,12 +548,12 @@ def user_profile():
             reviewer_display = review.get("reviewer_name", "Anonymous")
             col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
             col1.caption(f"Reviewed by: {reviewer_display}")
-            # When Edit is clicked, pre-populate the review form by passing review_to_edit.
+            # Edit button pre-populates form by setting edit_review_index and show_form
             if col2.button("Edit", key=f"edit_{i}"):
                 st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
-                st.rerun()
+                st.stop()
     else:
         st.write("You have not submitted any reviews yet.")
 
@@ -588,7 +587,7 @@ def internship_feed():
             st.session_state.show_form = False
             st.session_state.edit_review_index = None
             st.session_state.page = "📰 Internship Feed"
-            st.rerun()
+            st.stop()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
