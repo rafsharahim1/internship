@@ -138,7 +138,7 @@ if not st.session_state.firebase_user:
                             email_verified=False
                         )
                         link = auth.generate_email_verification_link(new_email)
-                        st.success("Account created! Check your email for verification")
+                        st.success("Account created! Kindly proceed to Login")
                     except Exception as e:
                         st.error(handle_auth_error(e))
                 else:
