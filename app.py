@@ -112,11 +112,9 @@ if not st.session_state.firebase_user:
                         st.stop()
                 except Exception as e:
                     st.error(f"Authentication failed: {str(e)}")
-        # Forgot Password link
         if st.button("Forgot Password?"):
             st.session_state.show_forgot = True
 
-        # Forgot Password form
         if st.session_state.show_forgot:
             with st.form("forgot_form"):
                 forgot_email = st.text_input("Enter your IBA Email for password reset")
@@ -155,7 +153,6 @@ if not st.session_state.firebase_user:
 # ----------------------
 def complete_profile():
     st.header("Complete Your Profile")
-    # Use a form for profile fields
     with st.form("profile_form"):
         full_name = st.text_input("Full Name")
         age = st.number_input("Age", min_value=16, max_value=100, step=1)
@@ -365,7 +362,6 @@ def onboarding_process():
                     }
                     db.collection("reviews").add(review)
                 st.balloons()
-                # Update onboarding_complete in the user's document
                 db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
                 st.session_state.reviews_submitted = 2
                 st.session_state.page = "👤 User Profile"
@@ -386,13 +382,12 @@ def onboarding_process():
 # ----------------------
 # Sidebar Navigation and Page Storage
 # ----------------------
-# We hide the Onboarding option from the sidebar.
 if "page" not in st.session_state:
     st.session_state.page = "👤 User Profile"
 
 page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed"),
                           index=0 if st.session_state.get("page", "👤 User Profile") == "👤 User Profile" else 1)
-# If onboarding is not complete, force the Onboarding page.
+# Force Onboarding page if profile is complete but onboarding not done
 if profile_completed and not onboarding_complete:
     st.session_state.page = "Onboarding"
 else:
@@ -453,35 +448,32 @@ def user_profile():
     st.header("Bookmarked Reviews")
     if bookmarked_reviews:
         for review in bookmarked_reviews:
-            st.markdown(f"### {review['Company']} ({review['Industry']})")
-            st.caption(f"👨💻 {review['Department']} | 🎓 Semester {review['Semester']}")
-            st.write(f"**Process:** {review['Ease of Process']}")
-            st.write(f"**Outcome:** {review['Offer Outcome']}")
+            st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})")
+            st.caption(f"👨💻 {review.get('Department', 'Unknown')} | 🎓 Semester {review.get('Semester', 'Unknown')}")
+            st.write(f"**Process:** {review.get('Ease of Process', 'Unknown')}")
+            st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
             st.write(f"**Upvotes:** {len(review.get('upvoters', []))}  |  **Bookmarks:** {len(review.get('bookmarkers', []))}")
     else:
         st.write("No bookmarked reviews.")
     
     # Display Your Reviews with Edit Option
-    # Display Your Reviews with Edit Option
-st.header("Your Reviews")
-user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
-                if review.get("user_id") == st.session_state.firebase_user["localId"]]
-if user_reviews:
-    for i, review in user_reviews:
-        col1, col2 = st.columns([8,2])
-        reviewer_display = review.get("reviewer_name", "Anonymous")
-        # Use .get() to safely access keys
-        col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
-        col1.caption(f"Reviewed by: {reviewer_display}")
-        if col2.button("Edit", key=f"edit_{i}"):
-            st.session_state.edit_review_index = i
-            st.session_state.show_form = True  
-            st.session_state.page = "📰 Internship Feed"
-            st.query_params = {"page": "Internship Feed"}
-            st.stop()
-else:
-    st.write("You have not submitted any reviews yet.")
-
+    st.header("Your Reviews")
+    user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
+                    if review.get("user_id") == st.session_state.firebase_user["localId"]]
+    if user_reviews:
+        for i, review in user_reviews:
+            col1, col2 = st.columns([8,2])
+            reviewer_display = review.get("reviewer_name", "Anonymous")
+            col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
+            col1.caption(f"Reviewed by: {reviewer_display}")
+            if col2.button("Edit", key=f"edit_{i}"):
+                st.session_state.edit_review_index = i
+                st.session_state.show_form = True  
+                st.session_state.page = "📰 Internship Feed"
+                st.query_params = {"page": "Internship Feed"}
+                st.stop()
+    else:
+        st.write("You have not submitted any reviews yet.")
 
 # ----------------------
 # Internship Feed Page
@@ -526,8 +518,8 @@ def internship_feed():
                 parts = stipend_val.split('-')
                 min_stipend, max_stipend = int(parts[0].strip()), int(parts[1].strip())
             matches = (
-                (company_search.lower() in review['Company'].lower()) and
-                (industry_filter == "All" or review['Industry'] == industry_filter) and
+                (company_search.lower() in review.get('Company', '').lower()) and
+                (industry_filter == "All" or review.get('Industry') == industry_filter) and
                 (min_stipend >= stipend_range[0]) and 
                 (max_stipend <= stipend_range[1])
             )
@@ -541,17 +533,17 @@ def internship_feed():
         with st.container():
             col1, col2 = st.columns([4,1])
             with col1:
-                st.markdown(f"### {review['Company']} ({review['Industry']})")
-                st.caption(f"👨💻 {review['Department']} | 🎓 Semester {review['Semester']}")
-                st.write(f"**Process:** {review['Ease of Process']}")
-                st.write(f"**Stipend:** {review['Stipend Range']}")
-                st.write(f"**Rating:** {'⭐' * review['Ease of Hiring']}")
-                st.write(f"**Red Flags:** {'🚩' * review['Red Flags']}")
+                st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})")
+                st.caption(f"👨💻 {review.get('Department', 'Unknown')} | 🎓 Semester {review.get('Semester', 'Unknown')}")
+                st.write(f"**Process:** {review.get('Ease of Process', 'Unknown')}")
+                st.write(f"**Stipend:** {review.get('Stipend Range', 'Unknown')}")
+                st.write(f"**Rating:** {'⭐' * review.get('Ease of Hiring', 0)}")
+                st.write(f"**Red Flags:** {'🚩' * review.get('Red Flags', 0)}")
                 with st.expander("Details"):
-                    st.write(f"**Assessments:** {review['Gamified Assessments']}")
-                    st.write(f"**Questions:** {review['Interview Questions']}")
+                    st.write(f"**Assessments:** {review.get('Gamified Assessments', 'Unknown')}")
+                    st.write(f"**Questions:** {review.get('Interview Questions', 'Unknown')}")
             with col2:
-                st.write(f"**Outcome:** {review['Offer Outcome']}")
+                st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
                 user_id = st.session_state.firebase_user["localId"]
                 upvoters = review.get("upvoters", [])
                 bookmarkers = review.get("bookmarkers", [])
@@ -579,16 +571,13 @@ def internship_feed():
 # ----------------------
 # Main Flow Control
 # ----------------------
-# If profile is not complete, show the profile form.
 if not profile_completed:
     complete_profile()
     st.stop()
-# If the profile is complete but onboarding reviews are not done, force review submissions.
 elif not onboarding_complete or st.session_state.page == "Onboarding":
     onboarding_process()
     st.stop()
 
-# Render pages based on sidebar navigation
 if st.session_state.page == "👤 User Profile":
     user_profile()
 else:
