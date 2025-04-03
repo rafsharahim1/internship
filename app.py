@@ -1,4 +1,4 @@
-import streamlit as st  
+import streamlit as st   
 import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, auth, firestore, exceptions
@@ -74,7 +74,7 @@ if 'firebase_user' not in st.session_state:
         'show_form': False,
         'edit_review_index': None,
         'data_loaded': False,
-        'page': "👤 User Profile",
+        'page': "👤 User Profile",  # Default page
         'dummy': False,
         'show_forgot': False,
         # New state for onboarding reviews
@@ -175,9 +175,11 @@ def complete_profile():
                 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
                 user_ref.set(profile_data, merge=True)
                 st.success("Profile saved!")
-                st.info("Now please submit 2 reviews for onboarding.")
                 st.session_state.user_profile = profile_data
-                st.stop()
+                # Show Next button to proceed to onboarding
+                if st.button("Next"):
+                    st.session_state.page = "Onboarding"
+                    st.experimental_rerun()
             except Exception as e:
                 st.error(f"Failed to save profile: {str(e)}")
 
@@ -380,12 +382,17 @@ def onboarding_process():
 # ----------------------
 # Sidebar Navigation and Page Storage
 # ----------------------
+# We hide the Onboarding option from the sidebar.
 if "page" not in st.session_state:
     st.session_state.page = "👤 User Profile"
 
 page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed"),
                           index=0 if st.session_state.get("page", "👤 User Profile") == "👤 User Profile" else 1)
-st.session_state.page = page
+# If onboarding is not complete, force the Onboarding page.
+if profile_completed and not onboarding_complete:
+    st.session_state.page = "Onboarding"
+else:
+    st.session_state.page = page
 
 # ----------------------
 # User Profile Page
@@ -570,7 +577,7 @@ if not profile_completed:
     complete_profile()
     st.stop()
 # If the profile is complete but onboarding reviews are not done, force review submissions.
-elif not onboarding_complete:
+elif not onboarding_complete or st.session_state.page == "Onboarding":
     onboarding_process()
     st.stop()
 
