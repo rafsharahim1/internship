@@ -81,7 +81,8 @@ if 'firebase_user' not in st.session_state:
         'reviews_submitted': 0,
         'current_review_step': 0,
         'review_data': [{} for _ in range(2)],
-        'user_profile': {}
+        'user_profile': {},
+        'profile_saved': False  # Flag for profile saved
     })
 
 # Read query parameters (read-only)
@@ -154,6 +155,7 @@ if not st.session_state.firebase_user:
 # ----------------------
 def complete_profile():
     st.header("Complete Your Profile")
+    # Use a form for profile fields
     with st.form("profile_form"):
         full_name = st.text_input("Full Name")
         age = st.number_input("Age", min_value=16, max_value=100, step=1)
@@ -174,14 +176,16 @@ def complete_profile():
             try:
                 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
                 user_ref.set(profile_data, merge=True)
-                st.success("Profile saved!")
                 st.session_state.user_profile = profile_data
-                # Show Next button to proceed to onboarding
-                if st.button("Next"):
-                    st.session_state.page = "Onboarding"
-                    st.experimental_rerun()
+                st.success("Profile saved!")
+                st.session_state.profile_saved = True
             except Exception as e:
                 st.error(f"Failed to save profile: {str(e)}")
+    # Show Next button outside the form if profile is saved
+    if st.session_state.get("profile_saved", False):
+        if st.button("Next"):
+            st.session_state.page = "Onboarding"
+            st.experimental_rerun()
 
 # Check if profile exists and is complete
 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
