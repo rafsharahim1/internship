@@ -283,9 +283,92 @@ def validate_stipend(stipend):
         return False
 
 # ----------------------
+# New Editable Review Form Function
+# ----------------------
+def review_form(review_to_edit=None):
+    # Define available options
+    companies = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
+                 'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
+                 'PepsiCo Pakistan', 'Other']
+    industries = ["Tech", "Finance", "Marketing", "HR", "Other"]
+    ease_options = ["Easy", "Moderate", "Hard"]
+    outcomes = ["Accepted", "Rejected", "In Process"]
+    departments = ["Tech", "Finance", "HR", "Marketing", "Operations"]
+    
+    # Determine default indices based on review_to_edit if available
+    default_company = review_to_edit.get("Company", companies[0]) if review_to_edit else companies[0]
+    default_company_index = companies.index(default_company) if default_company in companies else companies.index("Other")
+    
+    default_industry = review_to_edit.get("Industry", industries[0]) if review_to_edit else industries[0]
+    default_industry_index = industries.index(default_industry) if default_industry in industries else 0
+    
+    default_ease = review_to_edit.get("Ease of Process", ease_options[0]) if review_to_edit else ease_options[0]
+    default_ease_index = ease_options.index(default_ease) if default_ease in ease_options else 0
+    
+    default_outcome = review_to_edit.get("Offer Outcome", outcomes[0]) if review_to_edit else outcomes[0]
+    default_outcome_index = outcomes.index(default_outcome) if default_outcome in outcomes else 0
+    
+    default_department = review_to_edit.get("Department", departments[0]) if review_to_edit else departments[0]
+    default_department_index = departments.index(default_department) if default_department in departments else 0
+    
+    default_referral = review_to_edit.get("referral", "Yes") if review_to_edit else "Yes"
+    default_post = review_to_edit.get("post_option", "Use my full name") if review_to_edit else "Use my full name"
+    
+    with st.form("edit_review_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            company = st.selectbox("Company", companies, index=default_company_index, key="edit_company")
+            custom_company = ""
+            if company == "Other":
+                custom_company = st.text_input("Custom Company", value=review_to_edit.get("Custom Company", "") if review_to_edit else "", key="edit_custom_company")
+            industry = st.selectbox("Industry", industries, index=default_industry_index, key="edit_industry")
+            ease_process = st.selectbox("Ease of Process", ease_options, index=default_ease_index, key="edit_ease")
+            assessments = st.text_area("Gamified Assessments", value=review_to_edit.get("assessments", "") if review_to_edit else "", key="edit_assessments")
+            interview_questions = st.text_area("Interview Questions", value=review_to_edit.get("interview_questions", "") if review_to_edit else "", key="edit_questions")
+            stipend = st.text_input("Stipend Range (Rs) (Optional)", value=review_to_edit.get("stipend", "") if review_to_edit else "", key="edit_stipend")
+        with col2:
+            hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, value=review_to_edit.get("hiring_rating", 3) if review_to_edit else 3, key="edit_hiring")
+            referral = st.radio("Referral Used?", ["Yes", "No"], index=0 if default_referral=="Yes" else 1, key="edit_referral")
+            red_flags = st.slider("Red Flags (1-5)", 1, 5, value=review_to_edit.get("red_flags", 3) if review_to_edit else 3, key="edit_redflags")
+            department = st.selectbox("Department", departments, index=default_department_index, key="edit_department")
+            semester = st.slider("Semester", 1, 8, value=review_to_edit.get("semester", 5) if review_to_edit else 5, key="edit_semester")
+            outcome = st.selectbox("Outcome", outcomes, index=default_outcome_index, key="edit_outcome")
+            post_option = st.radio("Post As", ["Use my full name", "Anonymous"], index=0 if default_post=="Use my full name" else 1, key="edit_post")
+        
+        submitted = st.form_submit_button("Submit Review")
+        if submitted:
+            errors = []
+            if company == "Other" and not custom_company:
+                errors.append("Company name required")
+            if stipend and not validate_stipend(stipend):
+                errors.append("Invalid stipend format (use 'min-max')")
+            if errors:
+                for error in errors:
+                    st.error(error)
+                return None
+            review_data = {
+                "Company": custom_company if company == "Other" else company,
+                "Industry": industry,
+                "Ease of Process": ease_process,
+                "assessments": assessments,
+                "interview_questions": interview_questions,
+                "stipend": stipend,
+                "hiring_rating": hiring_rating,
+                "referral": referral,
+                "red_flags": red_flags,
+                "Department": department,
+                "Semester": semester,
+                "Offer Outcome": outcome,
+                "post_option": post_option
+            }
+            return review_data
+    return None
+
+# ----------------------
 # New Onboarding Functions
 # ----------------------
 def get_review_form(step):
+    # This function is used for the onboarding reviews
     with st.form(key=f"onboarding_review_form_{step}"):
         col1, col2 = st.columns(2)
         with col1:
@@ -466,12 +549,12 @@ def user_profile():
             reviewer_display = review.get("reviewer_name", "Anonymous")
             col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
             col1.caption(f"Reviewed by: {reviewer_display}")
+            # When Edit is clicked, pre-populate the review form by passing review_to_edit.
             if col2.button("Edit", key=f"edit_{i}"):
                 st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
-                st.query_params = {"page": "Internship Feed"}
-                st.stop()
+                st.experimental_rerun()
     else:
         st.write("You have not submitted any reviews yet.")
 
@@ -494,20 +577,18 @@ def internship_feed():
         review_to_edit = st.session_state.reviews[st.session_state.edit_review_index]
     
     if st.session_state.show_form:
-        with st.form("review_form", clear_on_submit=True):
-            review_data = review_form(review_to_edit)
-            if review_data:
-                if st.session_state.edit_review_index is not None:
-                    doc_id = st.session_state.reviews[st.session_state.edit_review_index]['id']
-                    save_review(review_data, edit=True, review_doc_id=doc_id)
-                else:
-                    save_review(review_data)
-                st.success("Review Submitted!")
-                st.session_state.show_form = False
-                st.session_state.edit_review_index = None
-                st.session_state.page = "📰 Internship Feed"
-                st.query_params = {"page": "Internship Feed"}
-                st.stop()
+        review_data = review_form(review_to_edit)
+        if review_data:
+            if st.session_state.edit_review_index is not None:
+                doc_id = st.session_state.reviews[st.session_state.edit_review_index]['id']
+                save_review(review_data, edit=True, review_doc_id=doc_id)
+            else:
+                save_review(review_data)
+            st.success("Review Submitted!")
+            st.session_state.show_form = False
+            st.session_state.edit_review_index = None
+            st.session_state.page = "📰 Internship Feed"
+            st.experimental_rerun()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
