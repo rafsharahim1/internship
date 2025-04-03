@@ -44,13 +44,12 @@ def sign_in_with_email_and_password(email, password):
     payload = {"email": email, "password": password, "returnSecureToken": True}
     response = requests.post(url, json=payload)
     if response.status_code == 200:
-        return response.json()  # Contains "localId", "idToken", etc.
+        return response.json()
     else:
         error = response.json().get("error", {}).get("message", "Unknown error")
         raise Exception(error)
 
 def send_password_reset_email(email):
-    """Sends a password reset email via Firebase."""
     api_key = st.secrets["firebase"]["apiKey"]
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={api_key}"
     payload = {"requestType": "PASSWORD_RESET", "email": email}
@@ -74,15 +73,14 @@ if 'firebase_user' not in st.session_state:
         'show_form': False,
         'edit_review_index': None,
         'data_loaded': False,
-        'page': "👤 User Profile",  # Default page
-        'dummy': False,
+        'page': "👤 User Profile",
         'show_forgot': False,
-        # New state for onboarding reviews
         'reviews_submitted': 0,
         'current_review_step': 0,
         'review_data': [{} for _ in range(2)],
         'user_profile': {},
-        'profile_saved': False  # Flag for profile saved
+        'profile_saved': False,
+        'review_submitted': False  # Added success state
     })
 
 query_params = st.query_params
@@ -106,9 +104,9 @@ if not st.session_state.firebase_user:
                         st.error("Only IBA email addresses allowed")
                     else:
                         user_info = sign_in_with_email_and_password(email, password)
-                        st.session_state.firebase_user = user_info  # localId acts as UID
+                        st.session_state.firebase_user = user_info
                         st.query_params = {"page": st.session_state.page}
-                        st.stop()
+                        st.rerun()
                 except Exception as e:
                     st.error(f"Authentication failed: {str(e)}")
         if st.button("Forgot Password?"):
@@ -148,7 +146,7 @@ if not st.session_state.firebase_user:
     st.stop()
 
 # ----------------------
-# Profile Completion Functions
+# Profile Completion
 # ----------------------
 def complete_profile():
     st.header("Complete Your Profile")
@@ -167,7 +165,7 @@ def complete_profile():
                 "program": program,
                 "expected_grad_year": grad_year,
                 "profile_completed": True,
-                "onboarding_complete": False  # Initially false
+                "onboarding_complete": False
             }
             try:
                 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
@@ -180,7 +178,7 @@ def complete_profile():
     if st.session_state.get("profile_saved", False):
         if st.button("Next"):
             st.session_state.page = "Onboarding"
-            st.stop()
+            st.rerun()
 
 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
 user_doc = user_ref.get()
@@ -194,7 +192,7 @@ else:
     onboarding_complete = False
 
 # ----------------------
-# Data Management Functions
+# Data Management
 # ----------------------
 def load_data():
     try:
@@ -228,107 +226,56 @@ def save_applications():
     except Exception as e:
         st.error(f"Failed to save applications: {str(e)}")
 
-def save_contributions():
-    try:
-        user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
-        user_ref.update({"contributions": st.session_state.contributions.to_dict("records")})
-    except Exception as e:
-        st.error(f"Failed to save contributions: {str(e)}")
-
-def save_bookmarks():
-    try:
-        user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
-        user_ref.update({"bookmarks": list(set(st.session_state.bookmarks))})
-    except Exception as e:
-        st.error(f"Failed to save bookmarks: {str(e)}")
-
 def save_review(review_data, edit=False, review_doc_id=None):
     try:
         reviews_ref = db.collection("reviews")
+        review_data['user_id'] = st.session_state.firebase_user["localId"]
+        review_data['reviewer_name'] = st.session_state.user_profile.get('full_name', 'Anonymous') \
+            if review_data.get('post_option') == "Use my full name" else "Anonymous"
+        review_data['timestamp'] = firestore.SERVER_TIMESTAMP
+        
         if edit and review_doc_id:
             reviews_ref.document(review_doc_id).update(review_data)
         else:
-            review_data['upvoters'] = review_data.get('upvoters', [])
-            review_data['bookmarkers'] = review_data.get('bookmarkers', [])
+            review_data['upvoters'] = []
+            review_data['bookmarkers'] = []
             new_doc = reviews_ref.add(review_data)
             review_data['id'] = new_doc[1].id
+        
         load_data()
+        return True
     except Exception as e:
         st.error(f"Failed to save review: {str(e)}")
-
-# ----------------------
-# Helper Functions
-# ----------------------
-def calculate_kpis():
-    if st.session_state.applications.empty:
-        return {'Total Applications': 0, 'Rejected': 0, 'In Progress': 0}
-    if 'Status' not in st.session_state.applications.columns:
-        total = len(st.session_state.applications)
-        return {'Total Applications': total, 'Rejected': 0, 'In Progress': total}
-    total = len(st.session_state.applications)
-    rejected = len(st.session_state.applications[st.session_state.applications['Status'] == 'Rejected'])
-    in_progress = len(st.session_state.applications[~st.session_state.applications['Status'].isin(['Offer Received', 'Rejected'])])
-    return {'Total Applications': total, 'Rejected': rejected, 'In Progress': in_progress}
-
-def validate_stipend(stipend):
-    if not stipend:
-        return True
-    try:
-        parts = stipend.split('-')
-        return len(parts) == 2 and all(part.strip().isdigit() for part in parts)
-    except:
         return False
 
 # ----------------------
-# New Editable Review Form Function
+# Review Components
 # ----------------------
 def review_form(review_to_edit=None):
     companies = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
                  'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
                  'PepsiCo Pakistan', 'Other']
-    industries = ["Tech", "Finance", "Marketing", "HR", "Other"]
-    ease_options = ["Easy", "Moderate", "Hard"]
-    outcomes = ["Accepted", "Rejected", "In Process"]
-    departments = ["Tech", "Finance", "HR", "Marketing", "Operations"]
-    
-    default_company = review_to_edit.get("Company", companies[0]) if review_to_edit else companies[0]
-    default_company_index = companies.index(default_company) if default_company in companies else companies.index("Other")
-    
-    default_industry = review_to_edit.get("Industry", industries[0]) if review_to_edit else industries[0]
-    default_industry_index = industries.index(default_industry) if default_industry in industries else 0
-    
-    default_ease = review_to_edit.get("Ease of Process", ease_options[0]) if review_to_edit else ease_options[0]
-    default_ease_index = ease_options.index(default_ease) if default_ease in ease_options else 0
-    
-    default_outcome = review_to_edit.get("Offer Outcome", outcomes[0]) if review_to_edit else outcomes[0]
-    default_outcome_index = outcomes.index(default_outcome) if default_outcome in outcomes else 0
-    
-    default_department = review_to_edit.get("Department", departments[0]) if review_to_edit else departments[0]
-    default_department_index = departments.index(default_department) if default_department in departments else 0
-    
-    default_referral = review_to_edit.get("referral", "Yes") if review_to_edit else "Yes"
-    default_post = review_to_edit.get("post_option", "Use my full name") if review_to_edit else "Use my full name"
     
     with st.form("edit_review_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-            company = st.selectbox("Company", companies, index=default_company_index, key="edit_company")
+            company = st.selectbox("Company", companies, index=0)
             custom_company = ""
             if company == "Other":
-                custom_company = st.text_input("Custom Company", value=review_to_edit.get("Custom Company", "") if review_to_edit else "", key="edit_custom_company")
-            industry = st.selectbox("Industry", industries, index=default_industry_index, key="edit_industry")
-            ease_process = st.selectbox("Ease of Process", ease_options, index=default_ease_index, key="edit_ease")
-            assessments = st.text_area("Gamified Assessments", value=review_to_edit.get("assessments", "") if review_to_edit else "", key="edit_assessments")
-            interview_questions = st.text_area("Interview Questions", value=review_to_edit.get("interview_questions", "") if review_to_edit else "", key="edit_questions")
-            stipend = st.text_input("Stipend Range (Rs) (Optional)", value=review_to_edit.get("stipend", "") if review_to_edit else "", key="edit_stipend")
+                custom_company = st.text_input("Custom Company")
+            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"])
+            ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
+            assessments = st.text_area("Gamified Assessments")
+            interview_questions = st.text_area("Interview Questions")
+            stipend = st.text_input("Stipend Range (Rs) (Optional)")
         with col2:
-            hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, value=review_to_edit.get("hiring_rating", 3) if review_to_edit else 3, key="edit_hiring")
-            referral = st.radio("Referral Used?", ["Yes", "No"], index=0 if default_referral=="Yes" else 1, key="edit_referral")
-            red_flags = st.slider("Red Flags (1-5)", 1, 5, value=review_to_edit.get("red_flags", 3) if review_to_edit else 3, key="edit_redflags")
-            department = st.selectbox("Department", departments, index=default_department_index, key="edit_department")
-            semester = st.slider("Semester", 1, 8, value=review_to_edit.get("semester", 5) if review_to_edit else 5, key="edit_semester")
-            outcome = st.selectbox("Outcome", outcomes, index=default_outcome_index, key="edit_outcome")
-            post_option = st.radio("Post As", ["Use my full name", "Anonymous"], index=0 if default_post=="Use my full name" else 1, key="edit_post")
+            hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, 3)
+            referral = st.radio("Referral Used?", ["Yes", "No"])
+            red_flags = st.slider("Red Flags (1-5)", 1, 5, 3)
+            department = st.selectbox("Department", ["Tech", "Finance", "HR", "Marketing", "Operations"])
+            semester = st.slider("Semester", 1, 8, 5)
+            outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"])
+            post_option = st.radio("Post As", ["Use my full name", "Anonymous"])
         
         submitted = st.form_submit_button("Submit Review")
         if submitted:
@@ -341,7 +288,7 @@ def review_form(review_to_edit=None):
                 for error in errors:
                     st.error(error)
                 return None
-            review_data = {
+            return {
                 "Company": custom_company if company == "Other" else company,
                 "Industry": industry,
                 "Ease of Process": ease_process,
@@ -356,118 +303,10 @@ def review_form(review_to_edit=None):
                 "Offer Outcome": outcome,
                 "post_option": post_option
             }
-            return review_data
     return None
 
-def get_review_form(step):
-    # Onboarding review form; similar to edit but without pre-population.
-    with st.form(key=f"onboarding_review_form_{step}"):
-        col1, col2 = st.columns(2)
-        with col1:
-            company = st.selectbox("Company", [
-                'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
-                'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
-                'PepsiCo Pakistan', 'Other'
-            ], key=f"company_{step}")
-            custom_company = ""
-            if company == 'Other':
-                custom_company = st.text_input("Custom Company", key=f"custom_company_{step}")
-            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"], key=f"industry_{step}")
-            ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
-            assessments = st.text_area("Gamified Assessments", key=f"assessments_{step}")
-            interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
-            stipend = st.text_input("Stipend Range (Rs) (Optional)", key=f"stipend_{step}")
-        with col2:
-            hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, 3, key=f"hiring_{step}")
-            referral = st.radio("Referral Used?", ["Yes", "No"], key=f"referral_{step}")
-            red_flags = st.slider("Red Flags (1-5)", 1, 5, 3, key=f"redflags_{step}")
-            department = st.selectbox("Department", ["Tech", "Finance", "HR", "Marketing", "Operations"], key=f"dept_{step}")
-            semester = st.slider("Semester", 1, 8, 5, key=f"sem_{step}")
-            outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
-            post_option = st.radio("Post As", ["Use my full name", "Anonymous"], key=f"post_{step}")
-        errors = []
-        if company == 'Other' and not custom_company:
-            errors.append("Company name required")
-        if stipend and not validate_stipend(stipend):
-            errors.append("Invalid stipend format (use 'min-max')")
-        submitted = st.form_submit_button("Submit Review ➡️")
-        if submitted:
-            if not errors:
-                return {
-                    'company': custom_company if company == 'Other' else company,
-                    'industry': industry,
-                    'ease_process': ease_process,
-                    'assessments': assessments,
-                    'interview_questions': interview_questions,
-                    'stipend': stipend,
-                    'hiring_rating': hiring_rating,
-                    'referral': referral,
-                    'red_flags': red_flags,
-                    'department': department,
-                    'semester': semester,
-                    'outcome': outcome,
-                    'post_option': post_option
-                }
-            else:
-                for error in errors:
-                    st.error(error)
-                return None
-
-def onboarding_process():
-    st.header("Complete Onboarding (2 Reviews Required)")
-    current_step = st.session_state.current_review_step
-    progress = (current_step + 1) / 2
-    st.progress(progress)
-    
-    review_data = get_review_form(current_step)
-    
-    if review_data:
-        st.session_state.review_data[current_step] = review_data
-        if current_step == 1:
-            try:
-                for i in range(2):
-                    data = st.session_state.review_data[i]
-                    review = {
-                        'user_id': st.session_state.firebase_user["localId"],
-                        'reviewer_name': st.session_state.user_profile.get('full_name', 'Anonymous') 
-                                         if data['post_option'] == "Use my full name" else "Anonymous",
-                        'timestamp': firestore.SERVER_TIMESTAMP,
-                        **data
-                    }
-                    db.collection("reviews").add(review)
-                st.balloons()
-                db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
-                st.session_state.reviews_submitted = 2
-                st.session_state.page = "👤 User Profile"
-                st.stop()
-            except Exception as e:
-                st.error(f"Failed to save reviews: {str(e)}")
-        else:
-            st.session_state.current_review_step += 1
-            st.stop()
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if current_step > 0:
-            if st.button("← Previous"):
-                st.session_state.current_review_step -= 1
-                st.stop()
-
 # ----------------------
-# Sidebar Navigation and Page Storage
-# ----------------------
-if "page" not in st.session_state:
-    st.session_state.page = "👤 User Profile"
-
-page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed"),
-                          index=0 if st.session_state.get("page", "👤 User Profile") == "👤 User Profile" else 1)
-if profile_completed and not onboarding_complete:
-    st.session_state.page = "Onboarding"
-else:
-    st.session_state.page = page
-
-# ----------------------
-# User Profile Page
+# Main Pages
 # ----------------------
 def user_profile():
     st.subheader("Your Profile Information")
@@ -477,14 +316,13 @@ def user_profile():
     st.write(f"**Program:** {user_profile_data.get('program', 'N/A')}")
     st.write(f"**Expected Graduation:** {user_profile_data.get('expected_grad_year', 'N/A')}")
     
-    st.title('User Job Application Dashboard')
+    st.title('Application Dashboard')
     kpis = calculate_kpis()
     cols = st.columns(3)
     cols[0].metric("Applications", kpis['Total Applications'])
     cols[1].metric("Rejected", kpis['Rejected'])
     cols[2].metric("In Progress", kpis['In Progress'])
     
-    st.header("Applications Tracker")
     with st.expander("➕ Add New Application"):
         with st.form("new_application"):
             name = st.text_input("Company Name")
@@ -495,64 +333,33 @@ def user_profile():
             referral = st.text_input("Referral Details")
             link = st.text_input("Application Link")
             notes = st.text_area("Notes")
-            if st.form_submit_button("Add Application"):
+            if st.form_submit_button("Add"):
                 deadline_dt = datetime.combine(deadline, datetime.min.time())
-                new_app = pd.DataFrame([{'Company Name': name,
-                                          'Status': status,
-                                          'Deadline': deadline_dt,
-                                          'Referral Details': referral,
-                                          'Link': link,
-                                          'Notes': notes}])
+                new_app = pd.DataFrame([{
+                    'Company Name': name,
+                    'Status': status,
+                    'Deadline': deadline_dt,
+                    'Referral Details': referral,
+                    'Link': link,
+                    'Notes': notes
+                }])
                 st.session_state.applications = pd.concat([st.session_state.applications, new_app], ignore_index=True)
                 save_applications()
-                st.stop()
+                st.rerun()
     
     edited_df = st.data_editor(st.session_state.applications,
-                               column_config={"Deadline": st.column_config.DateColumn(),
-                                              "Link": st.column_config.LinkColumn()},
-                               num_rows="dynamic")
+                              column_config={"Deadline": st.column_config.DateColumn(),
+                                             "Link": st.column_config.LinkColumn()},
+                              num_rows="dynamic")
     if not edited_df.equals(st.session_state.applications):
         st.session_state.applications = edited_df
         save_applications()
-    
-    # Display Bookmarked Reviews
-    current_user = st.session_state.firebase_user["localId"]
-    bookmarked_reviews = [review for review in st.session_state.reviews if current_user in review.get("bookmarkers", [])]
-    st.header("Bookmarked Reviews")
-    if bookmarked_reviews:
-        for review in bookmarked_reviews:
-            st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})")
-            st.caption(f"👨💻 {review.get('Department', 'Unknown')} | 🎓 Semester {review.get('Semester', 'Unknown')}")
-            st.write(f"**Process:** {review.get('Ease of Process', 'Unknown')}")
-            st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
-            st.write(f"**Upvotes:** {len(review.get('upvoters', []))}  |  **Bookmarks:** {len(review.get('bookmarkers', []))}")
-    else:
-        st.write("No bookmarked reviews.")
-    
-    # Display Your Reviews with Edit Option
-    st.header("Your Reviews")
-    user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
-                    if review.get("user_id") == st.session_state.firebase_user["localId"]]
-    if user_reviews:
-        for i, review in user_reviews:
-            col1, col2 = st.columns([8,2])
-            reviewer_display = review.get("reviewer_name", "Anonymous")
-            col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
-            col1.caption(f"Reviewed by: {reviewer_display}")
-            # When Edit is clicked, immediately switch to the feed and pre-populate the form.
-            if col2.button("Edit", key=f"edit_{i}"):
-                st.session_state.edit_review_index = i
-                st.session_state.show_form = True  
-                st.session_state.page = "📰 Internship Feed"
-                internship_feed()  # directly display the feed with the edit form
-                st.stop()
-    else:
-        st.write("You have not submitted any reviews yet.")
 
-# ----------------------
-# Internship Feed Page
-# ----------------------
 def internship_feed():
+    if st.session_state.review_submitted:
+        st.success("Review submitted successfully!")
+        st.session_state.review_submitted = False
+    
     st.header("🎯 Internship Feed")
     col1, col2, col3, col4 = st.columns([2,2,2,1])
     company_search = col1.text_input("Search by Company")
@@ -570,23 +377,21 @@ def internship_feed():
     if st.session_state.show_form:
         review_data = review_form(review_to_edit)
         if review_data:
-            if st.session_state.edit_review_index is not None:
-                doc_id = st.session_state.reviews[st.session_state.edit_review_index]['id']
-                save_review(review_data, edit=True, review_doc_id=doc_id)
-            else:
-                save_review(review_data)
-            st.success("Review Submitted!")
-            st.session_state.show_form = False
-            st.session_state.edit_review_index = None
-            st.session_state.page = "📰 Internship Feed"
-            st.stop()
+            success = save_review(review_data, 
+                                 edit=st.session_state.edit_review_index is not None,
+                                 review_doc_id=review_to_edit['id'] if review_to_edit else None)
+            if success:
+                st.session_state.show_form = False
+                st.session_state.edit_review_index = None
+                st.session_state.review_submitted = True
+                st.rerun()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
         try:
-            stipend_val = review.get('Stipend Range', '0-0')
-            min_stipend = max_stipend = 0
-            if stipend_val != "Not Specified":
+            stipend_val = review.get('stipend', '0-0')
+            min_stipend, max_stipend = 0, 0
+            if stipend_val and stipend_val != "Not Specified":
                 parts = stipend_val.split('-')
                 min_stipend, max_stipend = int(parts[0].strip()), int(parts[1].strip())
             matches = (
@@ -600,75 +405,72 @@ def internship_feed():
         except:
             continue
     
-    st.subheader("Top Reviews")
-    for idx, review in enumerate(sorted(filtered_reviews, key=lambda x: len(x.get("upvoters", [])), reverse=True)[:5]):
+    st.subheader("Recent Reviews")
+    for idx, review in enumerate(filtered_reviews):
         with st.container():
             col1, col2 = st.columns([4,1])
             with col1:
                 st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})")
                 st.caption(f"👨💻 {review.get('Department', 'Unknown')} | 🎓 Semester {review.get('Semester', 'Unknown')}")
                 st.write(f"**Process:** {review.get('Ease of Process', 'Unknown')}")
-                st.write(f"**Stipend:** {review.get('Stipend Range', 'Unknown')}")
-                st.write(f"**Rating:** {'⭐' * review.get('Ease of Hiring', 0)}")
-                st.write(f"**Red Flags:** {'🚩' * review.get('Red Flags', 0)}")
+                st.write(f"**Stipend:** {review.get('stipend', 'N/A')}")
+                st.write(f"**Rating:** {'⭐' * review.get('hiring_rating', 0)}")
+                st.write(f"**Red Flags:** {'🚩' * review.get('red_flags', 0)}")
                 with st.expander("Details"):
-                    st.write(f"**Assessments:** {review.get('Gamified Assessments', 'Unknown')}")
-                    st.write(f"**Questions:** {review.get('Interview Questions', 'Unknown')}")
+                    st.write(f"**Assessments:** {review.get('assessments', 'N/A')}")
+                    st.write(f"**Questions:** {review.get('interview_questions', 'N/A')}")
             with col2:
                 st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
                 user_id = st.session_state.firebase_user["localId"]
                 upvoters = review.get("upvoters", [])
                 bookmarkers = review.get("bookmarkers", [])
-                if user_id in upvoters:
-                    if st.button(f"Remove Upvote (👍 {len(upvoters)})", key=f"upvote_{idx}"):
-                        review_ref = db.collection("reviews").document(review['id'])
+                
+                # Upvote button
+                upvote_label = f"👍 {len(upvoters)}" if user_id not in upvoters else f"👎 {len(upvoters)}"
+                if st.button(upvote_label, key=f"upvote_{idx}"):
+                    review_ref = db.collection("reviews").document(review['id'])
+                    if user_id in upvoters:
                         review_ref.update({"upvoters": firestore.ArrayRemove([user_id])})
-                        load_data()
-                else:
-                    if st.button(f"Upvote (👍 {len(upvoters)})", key=f"upvote_{idx}"):
-                        review_ref = db.collection("reviews").document(review['id'])
+                    else:
                         review_ref.update({"upvoters": firestore.ArrayUnion([user_id])})
-                        load_data()
-                if user_id in bookmarkers:
-                    if st.button(f"Remove Bookmark (🔖 {len(bookmarkers)})", key=f"bookmark_{idx}"):
-                        review_ref = db.collection("reviews").document(review['id'])
+                    load_data()
+                    st.rerun()
+                
+                # Bookmark button
+                bookmark_label = "🔖 Bookmark" if user_id not in bookmarkers else "❌ Remove"
+                if st.button(bookmark_label, key=f"bookmark_{idx}"):
+                    review_ref = db.collection("reviews").document(review['id'])
+                    if user_id in bookmarkers:
                         review_ref.update({"bookmarkers": firestore.ArrayRemove([user_id])})
-                        load_data()
-                else:
-                    if st.button(f"Bookmark (🔖 {len(bookmarkers)})", key=f"bookmark_{idx}"):
-                        review_ref = db.collection("reviews").document(review['id'])
+                    else:
                         review_ref.update({"bookmarkers": firestore.ArrayUnion([user_id])})
-                        load_data()
+                    load_data()
+                    st.rerun()
 
 # ----------------------
-# Main Flow Control
+# Main Flow
 # ----------------------
 if not profile_completed:
     complete_profile()
-    st.stop()
 elif not onboarding_complete or st.session_state.page == "Onboarding":
     onboarding_process()
-    st.stop()
-
-if st.session_state.page == "👤 User Profile":
-    user_profile()
 else:
-    internship_feed()
+    if st.session_state.page == "👤 User Profile":
+        user_profile()
+    else:
+        internship_feed()
 
-if st.session_state.firebase_user:
-    if st.sidebar.button("Logout"):
-        st.session_state.clear()
-        st.query_params = {}
-        st.stop()
+if st.session_state.firebase_user and st.sidebar.button("Logout"):
+    st.session_state.clear()
+    st.query_params.clear()
+    st.rerun()
 
 st.markdown("""
 <style>
     [data-testid="stMetricValue"] { font-size: 18px; }
-    [data-testid="stMetricLabel"] { font-size: 16px; }
     .stDataFrame { margin-bottom: 20px; }
-    [data-testid="stExpander"] div[role="button"] p { font-size: 1.2rem; font-weight: bold; }
-    .stButton>button { width: 100%; margin: 5px 0; transition: all 0.3s ease; }
-    .stButton>button:hover { transform: scale(1.05); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    .stContainer { border-radius: 10px; padding: 20px; margin: 10px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: #f8f9fa; }
+    [data-testid="stExpander"] div[role="button"] p { font-size: 1.2rem; }
+    .stButton>button { transition: all 0.3s ease; }
+    .stButton>button:hover { transform: scale(1.02); }
 </style>
 """, unsafe_allow_html=True)
