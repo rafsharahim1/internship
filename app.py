@@ -538,16 +538,28 @@ def user_profile():
 # ----------------------
 def internship_feed():
     st.header("🎯 Internship Feed")
-    # Wrap search and filter inputs in a form with a clickable Search button
+    # --- Autocomplete for Company Search ---
+    # The text input outside the filter form will update dynamically.
+    company_search_input = st.text_input("Search by Company")
+    if company_search_input:
+        # Gather all company names from reviews (deduplicated)
+        all_companies = {review.get("Company", "") for review in st.session_state.reviews if review.get("Company", "")}
+        suggestions = sorted([comp for comp in all_companies if company_search_input.lower() in comp.lower()])
+        if suggestions:
+            chosen_company = st.selectbox("Did you mean:", options=suggestions, key="autocomplete")
+            if st.button("Use Suggestion", key="use_suggestion"):
+                company_search_input = chosen_company
+
+    # --- Filter Form ---
     with st.form("filter_form"):
-        col1, col2, col3, col4, col5 = st.columns(5)
-        company_search = col1.text_input("Search by Company")
-        industry_filter = col2.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
-        stipend_range = col3.slider("Stipend Range (Rs)", 0, 150000, (30000, 100000))
-        program_filter = col4.selectbox("Program Type", ["All", "MT Program", "Internship"])
-        search_clicked = col5.form_submit_button("Search")
+        # Use company_search_input as default value inside the form
+        company_search = st.text_input("Company", value=company_search_input)
+        industry_filter = st.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
+        stipend_range = st.slider("Stipend Range (Rs)", 0, 150000, (30000, 100000))
+        program_filter = st.selectbox("Program Type", ["All", "MT Program", "Internship"])
+        search_clicked = st.form_submit_button("Search")
     
-    # If search not clicked, use default filters (i.e., show all reviews)
+    # If search not clicked, use default filters
     if not search_clicked:
         company_search = ""
         industry_filter = "All"
