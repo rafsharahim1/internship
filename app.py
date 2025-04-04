@@ -140,7 +140,7 @@ if not st.session_state.firebase_user:
                             email_verified=False
                         )
                         link = auth.generate_email_verification_link(new_email)
-                        st.success("Account created! Check your email for verification")
+                        st.success("Account created! Kindly Proceed to Login")
                     except Exception as e:
                         st.error(handle_auth_error(e))
                 else:
@@ -283,14 +283,22 @@ def validate_stipend(stipend):
 # New Editable Review Form Function
 # ----------------------
 def review_form(review_to_edit=None):
-    companies = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
-                 'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
-                 'PepsiCo Pakistan', 'Other']
+    companies = [
+    'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
+    'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
+    'PepsiCo Pakistan', 'Engro Corporation', 'Packages Limited',
+    'Fauji Fertilizer Company', 'Hub Power Company', 'Lucky Cement',
+    'National Bank of Pakistan', 'Habib Bank Limited', 'MCB Bank',
+    'United Bank Limited', 'Meezan Bank', 'SNGPL', 'Systems Limited', "Bazaar Tech", 
+    'Pakistan State Oil', 'K-Electric', 'Bank Alfalah', 'Gul Ahmed',
+    'Interloop Limited', 'Nishat Group', 'Faysal Bank', 'Askari Bank',
+    'Soneri Bank', 'Summit Bank', 'Other']
+
     
     with st.form("edit_review_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-            # New Program Type Field
+        
             program_type = st.radio("Program Type", ["MT Program", "Internship"],
                                     index=0 if (review_to_edit and review_to_edit.get("program_type") == "MT Program") else 1)
             
@@ -298,15 +306,17 @@ def review_form(review_to_edit=None):
             custom_company = ""
             if company == "Other":
                 custom_company = st.text_input("Custom Company")
-            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"])
+            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering",
+                                    "Retail", "Manufacturing", "Consulting",
+                                    "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"])
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
             assessments = st.text_area("Gamified Assessments")
             interview_questions = st.text_area("Interview Questions")
             stipend = st.text_input("Stipend Range (Rs) (Optional)")
         with col2:
-            hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, 3)
+            hiring_rating = st.slider("Rating (1-5) [5 being the highest] ", 1, 5, 3)
             referral = st.radio("Referral Used?", ["Yes", "No"])
-            red_flags = st.slider("Red Flags (1-5)", 1, 5, 3)
+            red_flags = st.slider("Red Flags (1-5) [5 being the biggest Red Flag]", 1, 5, 3)
             department = st.selectbox("Department", ["Tech", "Finance", "HR", "Marketing", "Operations"])
             semester = st.slider("Semester", 1, 8, 5)
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"])
@@ -331,7 +341,7 @@ def review_form(review_to_edit=None):
                 "Gamified Assessments": assessments,
                 "Interview Questions": interview_questions,
                 "Stipend Range": stipend,
-                "Ease of Hiring": hiring_rating,
+                "Rating": hiring_rating,
                 "Referral Used": referral,
                 "Red Flags": red_flags,
                 "Department": department,
@@ -362,9 +372,9 @@ def get_review_form(step):
             interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
             stipend = st.text_input("Stipend Range (Rs) (Optional)", key=f"stipend_{step}")
         with col2:
-            hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, 3, key=f"hiring_{step}")
+            hiring_rating = st.slider("Rating (1-5) [5 being the highest]", 1, 5, 3, key=f"hiring_{step}")
             referral = st.radio("Referral Used?", ["Yes", "No"], key=f"referral_{step}")
-            red_flags = st.slider("Red Flags (1-5)", 1, 5, 3, key=f"redflags_{step}")
+            red_flags = st.slider("Red Flags (1-5)[5 being the Biggest Red Flag]", 1, 5, 3, key=f"redflags_{step}")
             department = st.selectbox("Department", ["Tech", "Finance", "HR", "Marketing", "Operations"], key=f"dept_{step}")
             semester = st.slider("Semester", 1, 8, 5, key=f"sem_{step}")
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
@@ -385,7 +395,7 @@ def get_review_form(step):
                     "Gamified Assessments": assessments,
                     "Interview Questions": interview_questions,
                     "Stipend Range": stipend,
-                    "Ease of Hiring": hiring_rating,
+                    "Rating": hiring_rating,
                     "Referral Used": referral,
                     "Red Flags": red_flags,
                     "Department": department,
@@ -473,7 +483,7 @@ def user_profile():
     with st.expander("➕ Add New Application"):
         with st.form("new_application"):
             name = st.text_input("Company Name")
-            status = st.selectbox("Status", ['Applied', 'Assessment Given', 'Interview R1 given',
+            status = st.selectbox("Status", ['Need to Apply','Applied', 'Assessment Given', 'Interview R1 given',
                                                'Interview R2 given', 'Interview R3 given', 
                                                'Accepted', 'Offer Received', 'Rejected'])
             deadline = st.date_input("Deadline")
