@@ -430,12 +430,14 @@ def onboarding_process():
                     db.collection("reviews").add(review)
 
                 load_data()
-                st.rerun()
-                
-                st.balloons()
+                # Update the onboarding complete flag in Firestore and local session
                 db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
                 st.session_state.reviews_submitted = 2
-                st.session_state.page = "👤 User Profile"
+                st.session_state.page = "👤 User Profile"  # Set new page for redirection
+
+                st.balloons()
+                # Use meta-refresh to force a reload
+                st.markdown("<meta http-equiv='refresh' content='0'>", unsafe_allow_html=True)
                 st.stop()
             except Exception as e:
                 st.error(f"Failed to save reviews: {str(e)}")
