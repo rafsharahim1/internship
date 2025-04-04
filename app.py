@@ -280,7 +280,7 @@ def validate_stipend(stipend):
         return False
 
 # ----------------------
-# New Editable Review Form Function (Prepopulated for Edit)
+# New Editable Review Form Function (Department Removed)
 # ----------------------
 def review_form(review_to_edit=None):
     companies = [
@@ -294,61 +294,32 @@ def review_form(review_to_edit=None):
         'Interloop Limited', 'Nishat Group', 'Faysal Bank', 'Askari Bank',
         'Soneri Bank', 'Summit Bank', 'Other'
     ]
-    # Set default values from review_to_edit if provided, else use defaults.
-    default_program_type = review_to_edit.get("program_type") if review_to_edit else "MT Program"
-    default_company = review_to_edit.get("Company") if review_to_edit else companies[0]
-    default_industry = review_to_edit.get("Industry") if review_to_edit else "Tech"
-    default_ease_process = review_to_edit.get("Ease of Process") if review_to_edit else "Easy"
-    default_assessments = review_to_edit.get("Gamified Assessments") if review_to_edit else ""
-    default_interview_questions = review_to_edit.get("Interview Questions") if review_to_edit else ""
-    default_stipend = review_to_edit.get("Stipend Range") if review_to_edit else ""
-    default_hiring_rating = review_to_edit.get("Rating") if review_to_edit else 3
-    default_referral = review_to_edit.get("Referral Used") if review_to_edit else "Yes"
-    default_red_flags = review_to_edit.get("Red Flags") if review_to_edit else 3
-    default_semester = review_to_edit.get("Semester") if review_to_edit else 5
-    default_outcome = review_to_edit.get("Offer Outcome") if review_to_edit else "Accepted"
-    default_post_option = review_to_edit.get("Post As") if review_to_edit else "Use my full name"
-    default_custom_company = ""
-    if default_company == "Other":
-         default_custom_company = review_to_edit.get("Company") if review_to_edit else ""
 
     with st.form("edit_review_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             program_type = st.radio("Program Type", ["MT Program", "Internship"],
-                                     value=default_program_type)
-            # For company selectbox, compute index if possible.
-            try:
-                company_index = companies.index(default_company)
-            except ValueError:
-                company_index = 0
-            company = st.selectbox("Company", companies, index=company_index)
+                                     index=0 if (review_to_edit and review_to_edit.get("program_type") == "MT Program") else 1)
+            
+            company = st.selectbox("Company", companies, index=0)
             custom_company = ""
             if company == "Other":
-                custom_company = st.text_input("Custom Company", value=default_custom_company)
+                custom_company = st.text_input("Custom Company")
             industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering",
                                                   "Retail", "Manufacturing", "Consulting",
-                                                  "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"],
-                                     index=["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering",
-                                            "Retail", "Manufacturing", "Consulting",
-                                            "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"].index(default_industry) if default_industry in ["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering",
-                                            "Retail", "Manufacturing", "Consulting",
-                                            "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"] else 0)
-            ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"],
-                                        index=["Easy", "Moderate", "Hard"].index(default_ease_process) if default_ease_process in ["Easy", "Moderate", "Hard"] else 0)
-            assessments = st.text_area("Gamified Assessments", value=default_assessments)
-            interview_questions = st.text_area("Interview Questions", value=default_interview_questions)
-            stipend = st.text_input("Stipend Range (Rs) [e.g 25000-30000] (Optional)", value=default_stipend)
+                                                  "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"])
+            ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
+            assessments = st.text_area("Gamified Assessments")
+            interview_questions = st.text_area("Interview Questions")
+            stipend = st.text_input("Stipend Range (Rs) [e.g 25000-30000] (Optional)")
         with col2:
-            hiring_rating = st.slider("Rating (1-5) [5 being the highest] ", 1, 5, value=int(default_hiring_rating))
-            referral = st.radio("Referral Used?", ["Yes", "No"], index=["Yes", "No"].index(default_referral) if default_referral in ["Yes", "No"] else 0)
-            red_flags = st.slider("Red Flags (1-5) [5 being the biggest Red Flag]", 1, 5, value=int(default_red_flags))
-            # Department field removed
-            semester = st.slider("Semester", 1, 8, value=int(default_semester))
-            outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"],
-                                   index=["Accepted", "Rejected", "In Process"].index(default_outcome) if default_outcome in ["Accepted", "Rejected", "In Process"] else 0)
-            post_option = st.radio("Post As", ["Use my full name", "Anonymous"],
-                                   index=["Use my full name", "Anonymous"].index(default_post_option) if default_post_option in ["Use my full name", "Anonymous"] else 0)
+            hiring_rating = st.slider("Rating (1-5) [5 being the highest] ", 1, 5, 3)
+            referral = st.radio("Referral Used?", ["Yes", "No"])
+            red_flags = st.slider("Red Flags (1-5) [5 being the biggest Red Flag]", 1, 5, 3)
+            # Removed Department field here
+            semester = st.slider("Semester", 1, 8, 5)
+            outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"])
+            post_option = st.radio("Post As", ["Use my full name", "Anonymous"])
         
         submitted = st.form_submit_button("Submit Review")
         if submitted:
@@ -372,58 +343,40 @@ def review_form(review_to_edit=None):
                 "Rating": hiring_rating,
                 "Referral Used": referral,
                 "Red Flags": red_flags,
-                # Department field removed
+                # "Department" field removed
                 "Semester": semester,
                 "Offer Outcome": outcome,
                 "Post As": post_option
             }
     return None
 
-# ----------------------
-# Onboarding Review Form Function (Prepopulated if needed)
-# ----------------------
 def get_review_form(step):
-    # If editing during onboarding, check for pre-existing data.
-    default_data = st.session_state.review_data[step] if st.session_state.review_data and st.session_state.review_data[step] else {}
+    # Onboarding review form; similar to edit but without pre-population.
     with st.form(key=f"onboarding_review_form_{step}"):
-        program_type = st.radio("Program Type", ["MT Program", "Internship"], value=default_data.get("program_type", "MT Program"), key=f"program_type_{step}")
+        program_type = st.radio("Program Type", ["MT Program", "Internship"], key=f"program_type_{step}")
         col1, col2 = st.columns(2)
         with col1:
-            company_options = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
-                               'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
-                               'PepsiCo Pakistan', 'Other']
-            try:
-                company_index = company_options.index(default_data.get("Company", company_options[0]))
-            except ValueError:
-                company_index = 0
-            company = st.selectbox("Company", company_options, index=company_index, key=f"company_{step}")
+            company = st.selectbox("Company", [
+                'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
+                'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
+                'PepsiCo Pakistan', 'Other'
+            ], key=f"company_{step}")
             custom_company = ""
             if company == 'Other':
-                custom_company = st.text_input("Custom Company", value=default_data.get("Company", ""), key=f"custom_company_{step}")
-            industry_options = ["Tech", "Finance", "Marketing", "HR", "Other"]
-            try:
-                industry_index = industry_options.index(default_data.get("Industry", "Tech"))
-            except ValueError:
-                industry_index = 0
-            industry = st.selectbox("Industry", industry_options, index=industry_index, key=f"industry_{step}")
-            ease_process_options = ["Easy", "Moderate", "Hard"]
-            try:
-                ease_index = ease_process_options.index(default_data.get("Ease of Process", "Easy"))
-            except ValueError:
-                ease_index = 0
-            ease_process = st.selectbox("Ease of Process", ease_process_options, index=ease_index, key=f"ease_{step}")
-            assessments = st.text_area("Gamified Assessments", value=default_data.get("Gamified Assessments", ""), key=f"assessments_{step}")
-            interview_questions = st.text_area("Interview Questions", value=default_data.get("Interview Questions", ""), key=f"questions_{step}")
-            stipend = st.text_input("Stipend Range (Rs) (Optional)", value=default_data.get("Stipend Range", ""), key=f"stipend_{step}")
+                custom_company = st.text_input("Custom Company", key=f"custom_company_{step}")
+            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"], key=f"industry_{step}")
+            ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
+            assessments = st.text_area("Gamified Assessments", key=f"assessments_{step}")
+            interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
+            stipend = st.text_input("Stipend Range (Rs) (Optional)", key=f"stipend_{step}")
         with col2:
-            hiring_rating = st.slider("Rating (1-5) [5 being the highest]", 1, 5, value=int(default_data.get("Rating", 3)), key=f"hiring_{step}")
-            referral = st.radio("Referral Used?", ["Yes", "No"], index=["Yes", "No"].index(default_data.get("Referral Used", "Yes")), key=f"referral_{step}")
-            red_flags = st.slider("Red Flags (1-5)[5 being the Biggest Red Flag]", 1, 5, value=int(default_data.get("Red Flags", 3)), key=f"redflags_{step}")
-            semester = st.slider("Semester", 1, 8, value=int(default_data.get("Semester", 5)), key=f"sem_{step}")
-            outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"],
-                                   index=["Accepted", "Rejected", "In Process"].index(default_data.get("Offer Outcome", "Accepted")), key=f"outcome_{step}")
-            post_option = st.radio("Post As", ["Use my full name", "Anonymous"],
-                                   index=["Use my full name", "Anonymous"].index(default_data.get("Post As", "Use my full name")), key=f"post_{step}")
+            hiring_rating = st.slider("Rating (1-5) [5 being the highest]", 1, 5, 3, key=f"hiring_{step}")
+            referral = st.radio("Referral Used?", ["Yes", "No"], key=f"referral_{step}")
+            red_flags = st.slider("Red Flags (1-5)[5 being the Biggest Red Flag]", 1, 5, 3, key=f"redflags_{step}")
+            # Removed Department field here as well
+            semester = st.slider("Semester", 1, 8, 5, key=f"sem_{step}")
+            outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
+            post_option = st.radio("Post As", ["Use my full name", "Anonymous"], key=f"post_{step}")
         errors = []
         if company == 'Other' and not custom_company:
             errors.append("Company name required")
@@ -443,6 +396,7 @@ def get_review_form(step):
                     "Rating": hiring_rating,
                     "Referral Used": referral,
                     "Red Flags": red_flags,
+                    # "Department" field removed
                     "Semester": semester,
                     "Offer Outcome": outcome,
                     "Post As": post_option
@@ -452,9 +406,6 @@ def get_review_form(step):
                     st.error(error)
                 return None
 
-# ----------------------
-# Onboarding Process
-# ----------------------
 def onboarding_process():
     st.header("Complete Onboarding (2 Reviews Required)")
     current_step = st.session_state.current_review_step
@@ -589,7 +540,8 @@ def user_profile():
                 st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
-                st.rerun()
+                internship_feed()  # directly display the feed with the edit form
+                st.stop()
     else:
         st.write("You have not submitted any reviews yet.")
 
@@ -639,7 +591,7 @@ def internship_feed():
             st.session_state.show_form = False
             st.session_state.edit_review_index = None
             st.session_state.page = "📰 Internship Feed"
-            st.rerun()
+            st.stop()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
