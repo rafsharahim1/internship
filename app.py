@@ -280,7 +280,7 @@ def validate_stipend(stipend):
         return False
 
 # ----------------------
-# New Editable Review Form Function (Department Removed)
+# New Editable Review Form Function (Department Removed) with New Fields
 # ----------------------
 def review_form(review_to_edit=None):
     companies = [
@@ -294,13 +294,15 @@ def review_form(review_to_edit=None):
         'Interloop Limited', 'Nishat Group', 'Faysal Bank', 'Askari Bank',
         'Soneri Bank', 'Summit Bank', 'Other'
     ]
+    gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
+                           "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
+                           "HackerRank Coding Assessments", "Other"]
 
     with st.form("edit_review_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             program_type = st.radio("Program Type", ["MT Program", "Internship"],
                                      index=0 if (review_to_edit and review_to_edit.get("program_type") == "MT Program") else 1)
-            
             company = st.selectbox("Company", companies, index=0)
             custom_company = ""
             if company == "Other":
@@ -309,15 +311,25 @@ def review_form(review_to_edit=None):
                                                   "Retail", "Manufacturing", "Consulting",
                                                   "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"])
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
+            # Keep the original Gamified Assessments text area
             assessments = st.text_area("Gamified Assessments")
+            # New multi-select for Gaming Options (in addition to the text box)
+            selected_gaming = st.multiselect("Select Gaming Assessment Options", options=gaming_options_list, default=[])
+            custom_gaming = ""
+            if "Other" in selected_gaming:
+                custom_gaming = st.text_input("Custom Gaming Option")
+            gaming_options = selected_gaming.copy()
+            if "Other" in gaming_options and custom_gaming:
+                gaming_options[gaming_options.index("Other")] = custom_gaming
             interview_questions = st.text_area("Interview Questions")
             stipend = st.text_input("Stipend Range (Rs) [e.g 25000-30000] (Optional)")
         with col2:
             hiring_rating = st.slider("Rating (1-5) [5 being the highest] ", 1, 5, 3)
             referral = st.radio("Referral Used?", ["Yes", "No"])
             red_flags = st.slider("Red Flags (1-5) [5 being the biggest Red Flag]", 1, 5, 3)
-            # Removed Department field here
             semester = st.slider("Semester", 1, 8, 5)
+            # New Interview Round drop-down field
+            interview_round = st.selectbox("Interview Round Status", ["Yes", "No", "Waiting"])
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"])
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"])
         
@@ -337,21 +349,24 @@ def review_form(review_to_edit=None):
                 "Company": custom_company if company == "Other" else company,
                 "Industry": industry,
                 "Ease of Process": ease_process,
-                "Gamified Assessments": assessments,
+                "Gamified Assessments": assessments,  # Original text box
+                "Gaming Options": gaming_options,       # New multi-select options
                 "Interview Questions": interview_questions,
                 "Stipend Range": stipend,
                 "Rating": hiring_rating,
                 "Referral Used": referral,
                 "Red Flags": red_flags,
-                # "Department" field removed
                 "Semester": semester,
+                "Interview Round": interview_round,
                 "Offer Outcome": outcome,
                 "Post As": post_option
             }
     return None
 
 def get_review_form(step):
-    # Onboarding review form; similar to edit but without pre-population.
+    gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
+                           "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
+                           "HackerRank Coding Assessments", "Other"]
     with st.form(key=f"onboarding_review_form_{step}"):
         program_type = st.radio("Program Type", ["MT Program", "Internship"], key=f"program_type_{step}")
         col1, col2 = st.columns(2)
@@ -367,14 +382,22 @@ def get_review_form(step):
             industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"], key=f"industry_{step}")
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
             assessments = st.text_area("Gamified Assessments", key=f"assessments_{step}")
+            # New multi-select for Gaming Options
+            selected_gaming = st.multiselect("Select Gaming Assessment Options", options=gaming_options_list, key=f"gaming_{step}")
+            custom_gaming = ""
+            if "Other" in selected_gaming:
+                custom_gaming = st.text_input("Custom Gaming Option", key=f"custom_gaming_{step}")
+            gaming_options = selected_gaming.copy()
+            if "Other" in gaming_options and custom_gaming:
+                gaming_options[gaming_options.index("Other")] = custom_gaming
             interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
             stipend = st.text_input("Stipend Range (Rs) (Optional)", key=f"stipend_{step}")
         with col2:
             hiring_rating = st.slider("Rating (1-5) [5 being the highest]", 1, 5, 3, key=f"hiring_{step}")
             referral = st.radio("Referral Used?", ["Yes", "No"], key=f"referral_{step}")
             red_flags = st.slider("Red Flags (1-5)[5 being the Biggest Red Flag]", 1, 5, 3, key=f"redflags_{step}")
-            # Removed Department field here as well
             semester = st.slider("Semester", 1, 8, 5, key=f"sem_{step}")
+            interview_round = st.selectbox("Interview Round Status", ["Yes", "No", "Waiting"], key=f"interview_{step}")
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"], key=f"post_{step}")
         errors = []
@@ -391,13 +414,14 @@ def get_review_form(step):
                     "Industry": industry,
                     "Ease of Process": ease_process,
                     "Gamified Assessments": assessments,
+                    "Gaming Options": gaming_options,
                     "Interview Questions": interview_questions,
                     "Stipend Range": stipend,
                     "Rating": hiring_rating,
                     "Referral Used": referral,
                     "Red Flags": red_flags,
-                    # "Department" field removed
                     "Semester": semester,
+                    "Interview Round": interview_round,
                     "Offer Outcome": outcome,
                     "Post As": post_option
                 }
@@ -524,6 +548,9 @@ def user_profile():
             st.caption(f"🎓 Semester {review.get('Semester', 'Unknown')}")
             st.write(f"**Process:** {review.get('Ease of Process', 'Unknown')}")
             st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
+            st.write(f"**Gamified Assessments:** {review.get('Gamified Assessments', 'N/A')}")
+            st.write(f"**Gaming Options:** {', '.join(review.get('Gaming Options', []))}")
+            st.write(f"**Interview Round:** {review.get('Interview Round', 'Unknown')}")
             st.write(f"**Upvotes:** {len(review.get('upvoters', []))}  |  **Bookmarks:** {len(review.get('bookmarkers', []))}")
     else:
         st.write("No bookmarked reviews.")
@@ -566,7 +593,6 @@ def internship_feed():
         program_filter = st.selectbox("Program Type", ["All", "MT Program", "Internship"])
         search_clicked = st.form_submit_button("Search")
     
-    # If search is not clicked, default to no filtering.
     if not search_clicked:
         company_search = "All"
         industry_filter = "All"
@@ -616,7 +642,6 @@ def internship_feed():
             continue
     
     st.subheader("Top Reviews")
-    # Sort reviews by number of upvotes (if available) and show top 5
     for idx, review in enumerate(sorted(filtered_reviews, key=lambda x: len(x.get("upvoters", [])), reverse=True)[:5]):
         with st.container():
             col1, col2 = st.columns([4,1])
@@ -629,7 +654,9 @@ def internship_feed():
                 st.write(f"**Rating:** {'⭐' * rating if rating > 0 else 'N/A'}")
                 st.write(f"**Red Flags:** {'🚩' * int(review.get('Red Flags', 0))}")
                 with st.expander("Details"):
-                    st.write(f"**Assessments:** {review.get('Gamified Assessments', 'Unknown')}")
+                    st.write(f"**Gamified Assessments:** {review.get('Gamified Assessments', 'N/A')}")
+                    st.write(f"**Gaming Options:** {', '.join(review.get('Gaming Options', []))}")
+                    st.write(f"**Interview Round:** {review.get('Interview Round', 'Unknown')}")
                     st.write(f"**Interview Questions:** {review.get('Interview Questions', 'Unknown')}")
                 st.write(f"**Reviewed by:** {review.get('reviewer_name', 'Anonymous')}")
             with col2:
