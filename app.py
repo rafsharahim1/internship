@@ -312,9 +312,9 @@ def review_form(review_to_edit=None):
                                                   "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"])
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
             # Keep the original Gamified Assessments text area
-            assessments = st.text_area("Gamified Assessments")
+            assessments = st.text_area("How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process.")
             # New multi-select for Gaming Options (in addition to the text box)
-            selected_gaming = st.multiselect("Select Gaming Assessment Options", options=gaming_options_list, default=[])
+            selected_gaming = st.multiselect("Select Gaming Assessment Options (You can Select Multiple options) ", options=gaming_options_list, default=[])
             custom_gaming = ""
             if "Other" in selected_gaming:
                 custom_gaming = st.text_input("Custom Gaming Option")
@@ -329,7 +329,7 @@ def review_form(review_to_edit=None):
             red_flags = st.slider("Red Flags (1-5) [5 being the biggest Red Flag]", 1, 5, 3)
             semester = st.slider("Semester", 1, 8, 5)
             # New Interview Round drop-down field
-            interview_round = st.selectbox("Interview Round Status", ["Yes", "No", "Waiting"])
+            interview_round = st.selectbox("Interview Round Status", ["Yes. made it to interview", "No, did not make it to interview", "Waiting"])
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"])
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"])
         
@@ -381,7 +381,7 @@ def get_review_form(step):
                 custom_company = st.text_input("Custom Company", key=f"custom_company_{step}")
             industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"], key=f"industry_{step}")
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
-            assessments = st.text_area("Gamified Assessments", key=f"assessments_{step}")
+            assessments = st.text_area("How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process", key=f"assessments_{step}")
             # New multi-select for Gaming Options
             selected_gaming = st.multiselect("Select Gaming Assessment Options", options=gaming_options_list, key=f"gaming_{step}")
             custom_gaming = ""
@@ -397,7 +397,7 @@ def get_review_form(step):
             referral = st.radio("Referral Used?", ["Yes", "No"], key=f"referral_{step}")
             red_flags = st.slider("Red Flags (1-5)[5 being the Biggest Red Flag]", 1, 5, 3, key=f"redflags_{step}")
             semester = st.slider("Semester", 1, 8, 5, key=f"sem_{step}")
-            interview_round = st.selectbox("Interview Round Status", ["Yes", "No", "Waiting"], key=f"interview_{step}")
+            interview_round = st.selectbox("Interview Round Status", ["Yes. made it to interview", "No, did not make it to interview", "Waiting"], key=f"interview_{step}")
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"], key=f"post_{step}")
         errors = []
