@@ -321,7 +321,7 @@ def review_form(review_to_edit=None):
             gaming_options = selected_gaming.copy()
             if "Other" in gaming_options and custom_gaming:
                 gaming_options[gaming_options.index("Other")] = custom_gaming
-            interview_questions = st.text_area("Interview Questions")
+            interview_questions = st.text_area("Interview Questions Asked")
             stipend = st.text_input("Stipend Range (Rs) [e.g 25000-30000] (Optional)")
         with col2:
             hiring_rating = st.slider("Rating (1-5) [5 being the highest]", 1, 5, 3)
