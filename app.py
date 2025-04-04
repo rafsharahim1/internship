@@ -359,12 +359,18 @@ def get_review_form(step):
             company = st.selectbox("Company", [
                 'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
                 'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
-                'PepsiCo Pakistan', 'Other'
+                'PepsiCo Pakistan', 'Engro Corporation', 'Packages Limited',
+                'Fauji Fertilizer Company', 'Hub Power Company', 'Lucky Cement',
+                'National Bank of Pakistan', 'Habib Bank Limited', 'MCB Bank',
+                'United Bank Limited', 'Meezan Bank', 'SNGPL', 'Systems Limited', "Bazaar Tech", 
+                'Pakistan State Oil', 'K-Electric', 'Bank Alfalah', 'Gul Ahmed',
+                'Interloop Limited', 'Nishat Group', 'Faysal Bank', 'Askari Bank',
+                'Soneri Bank', 'Summit Bank', 'Other'
             ], key=f"company_{step}")
             custom_company = ""
             if company == 'Other':
                 custom_company = st.text_input("Custom Company", key=f"custom_company_{step}")
-            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"], key=f"industry_{step}")
+            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering", "Retail", "Manufacturing", "Consulting", "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"], key=f"industry_{step}")
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
             assessments = st.text_area("Gamified Assessments", key=f"assessments_{step}")
             interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
