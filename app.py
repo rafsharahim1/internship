@@ -1,4 +1,4 @@
-import streamlit as st   
+import streamlit as st    
 import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, auth, firestore, exceptions
@@ -280,35 +280,34 @@ def validate_stipend(stipend):
         return False
 
 # ----------------------
-# New Editable Review Form Function
+# New Editable Review Form Function (Department Removed)
 # ----------------------
 def review_form(review_to_edit=None):
     companies = [
-    'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
-    'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
-    'PepsiCo Pakistan', 'Engro Corporation', 'Packages Limited',
-    'Fauji Fertilizer Company', 'Hub Power Company', 'Lucky Cement',
-    'National Bank of Pakistan', 'Habib Bank Limited', 'MCB Bank',
-    'United Bank Limited', 'Meezan Bank', 'SNGPL', 'Systems Limited', "Bazaar Tech", 
-    'Pakistan State Oil', 'K-Electric', 'Bank Alfalah', 'Gul Ahmed',
-    'Interloop Limited', 'Nishat Group', 'Faysal Bank', 'Askari Bank',
-    'Soneri Bank', 'Summit Bank', 'Other']
+        'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
+        'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
+        'PepsiCo Pakistan', 'Engro Corporation', 'Packages Limited',
+        'Fauji Fertilizer Company', 'Hub Power Company', 'Lucky Cement',
+        'National Bank of Pakistan', 'Habib Bank Limited', 'MCB Bank',
+        'United Bank Limited', 'Meezan Bank', 'SNGPL', 'Systems Limited', "Bazaar Tech", 
+        'Pakistan State Oil', 'K-Electric', 'Bank Alfalah', 'Gul Ahmed',
+        'Interloop Limited', 'Nishat Group', 'Faysal Bank', 'Askari Bank',
+        'Soneri Bank', 'Summit Bank', 'Other'
+    ]
 
-    
     with st.form("edit_review_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-        
             program_type = st.radio("Program Type", ["MT Program", "Internship"],
-                                    index=0 if (review_to_edit and review_to_edit.get("program_type") == "MT Program") else 1)
+                                     index=0 if (review_to_edit and review_to_edit.get("program_type") == "MT Program") else 1)
             
             company = st.selectbox("Company", companies, index=0)
             custom_company = ""
             if company == "Other":
                 custom_company = st.text_input("Custom Company")
             industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering",
-                                    "Retail", "Manufacturing", "Consulting",
-                                    "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"])
+                                                  "Retail", "Manufacturing", "Consulting",
+                                                  "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"])
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
             assessments = st.text_area("Gamified Assessments")
             interview_questions = st.text_area("Interview Questions")
@@ -317,7 +316,7 @@ def review_form(review_to_edit=None):
             hiring_rating = st.slider("Rating (1-5) [5 being the highest] ", 1, 5, 3)
             referral = st.radio("Referral Used?", ["Yes", "No"])
             red_flags = st.slider("Red Flags (1-5) [5 being the biggest Red Flag]", 1, 5, 3)
-            department = st.selectbox("Department", ["Tech", "Finance", "HR", "Marketing", "Operations"])
+            # Removed Department field here
             semester = st.slider("Semester", 1, 8, 5)
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"])
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"])
@@ -334,7 +333,7 @@ def review_form(review_to_edit=None):
                     st.error(error)
                 return None
             return {
-                "program_type": program_type,  # New field
+                "program_type": program_type,
                 "Company": custom_company if company == "Other" else company,
                 "Industry": industry,
                 "Ease of Process": ease_process,
@@ -344,7 +343,7 @@ def review_form(review_to_edit=None):
                 "Rating": hiring_rating,
                 "Referral Used": referral,
                 "Red Flags": red_flags,
-                "Department": department,
+                # "Department" field removed
                 "Semester": semester,
                 "Offer Outcome": outcome,
                 "Post As": post_option
@@ -354,7 +353,6 @@ def review_form(review_to_edit=None):
 def get_review_form(step):
     # Onboarding review form; similar to edit but without pre-population.
     with st.form(key=f"onboarding_review_form_{step}"):
-        # New Program Type Field in Onboarding Form
         program_type = st.radio("Program Type", ["MT Program", "Internship"], key=f"program_type_{step}")
         col1, col2 = st.columns(2)
         with col1:
@@ -375,7 +373,7 @@ def get_review_form(step):
             hiring_rating = st.slider("Rating (1-5) [5 being the highest]", 1, 5, 3, key=f"hiring_{step}")
             referral = st.radio("Referral Used?", ["Yes", "No"], key=f"referral_{step}")
             red_flags = st.slider("Red Flags (1-5)[5 being the Biggest Red Flag]", 1, 5, 3, key=f"redflags_{step}")
-            department = st.selectbox("Department", ["Tech", "Finance", "HR", "Marketing", "Operations"], key=f"dept_{step}")
+            # Removed Department field here as well
             semester = st.slider("Semester", 1, 8, 5, key=f"sem_{step}")
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"], key=f"post_{step}")
@@ -388,7 +386,7 @@ def get_review_form(step):
         if submitted:
             if not errors:
                 return {
-                    "program_type": program_type,  # New field
+                    "program_type": program_type,
                     "Company": custom_company if company == 'Other' else company,
                     "Industry": industry,
                     "Ease of Process": ease_process,
@@ -398,7 +396,7 @@ def get_review_form(step):
                     "Rating": hiring_rating,
                     "Referral Used": referral,
                     "Red Flags": red_flags,
-                    "Department": department,
+                    # "Department" field removed
                     "Semester": semester,
                     "Offer Outcome": outcome,
                     "Post As": post_option
@@ -520,8 +518,8 @@ def user_profile():
     st.header("Bookmarked Reviews")
     if bookmarked_reviews:
         for review in bookmarked_reviews:
-            st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})")
-            st.caption(f"👨💻 {review.get('Department', 'Unknown')} | 🎓 Semester {review.get('Semester', 'Unknown')}")
+            st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')}) - {review.get('program_type', 'Unknown')}")
+            st.caption(f"🎓 Semester {review.get('Semester', 'Unknown')}")
             st.write(f"**Process:** {review.get('Ease of Process', 'Unknown')}")
             st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
             st.write(f"**Upvotes:** {len(review.get('upvoters', []))}  |  **Bookmarks:** {len(review.get('bookmarkers', []))}")
@@ -536,7 +534,7 @@ def user_profile():
         for i, review in user_reviews:
             col1, col2 = st.columns([8,2])
             reviewer_display = review.get("reviewer_name", "Anonymous")
-            col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
+            col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')}) - {review.get('program_type', 'Unknown')}** - {review.get('Offer Outcome', 'Unknown')}")
             col1.caption(f"Reviewed by: {reviewer_display}")
             if col2.button("Edit", key=f"edit_{i}"):
                 st.session_state.edit_review_index = i
@@ -621,15 +619,17 @@ def internship_feed():
         with st.container():
             col1, col2 = st.columns([4,1])
             with col1:
-                st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})")
-                st.caption(f"👨💻 {review.get('Department', 'Unknown')} | 🎓 Semester {review.get('Semester', 'Unknown')}")
+                st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')}) - {review.get('program_type', 'Unknown')}")
+                st.caption(f"🎓 Semester {review.get('Semester', 'Unknown')}")
                 st.write(f"**Process:** {review.get('Ease of Process', 'Unknown')}")
                 st.write(f"**Stipend:** {review.get('Stipend Range', 'Unknown')}")
-                st.write(f"**Rating:** {'⭐' * review.get('Ease of Hiring', 0)}")
-                st.write(f"**Red Flags:** {'🚩' * review.get('Red Flags', 0)}")
+                rating = int(review.get('Rating', 0))
+                st.write(f"**Rating:** {'⭐' * rating if rating > 0 else 'N/A'}")
+                st.write(f"**Red Flags:** {'🚩' * int(review.get('Red Flags', 0))}")
                 with st.expander("Details"):
                     st.write(f"**Assessments:** {review.get('Gamified Assessments', 'Unknown')}")
                     st.write(f"**Interview Questions:** {review.get('Interview Questions', 'Unknown')}")
+                st.write(f"**Reviewed by:** {review.get('reviewer_name', 'Anonymous')}")
             with col2:
                 st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
                 user_id = st.session_state.firebase_user["localId"]
