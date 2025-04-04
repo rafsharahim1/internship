@@ -359,18 +359,12 @@ def get_review_form(step):
             company = st.selectbox("Company", [
                 'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
                 'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
-                'PepsiCo Pakistan', 'Engro Corporation', 'Packages Limited',
-                'Fauji Fertilizer Company', 'Hub Power Company', 'Lucky Cement',
-                'National Bank of Pakistan', 'Habib Bank Limited', 'MCB Bank',
-                'United Bank Limited', 'Meezan Bank', 'SNGPL', 'Systems Limited', "Bazaar Tech", 
-                'Pakistan State Oil', 'K-Electric', 'Bank Alfalah', 'Gul Ahmed',
-                'Interloop Limited', 'Nishat Group', 'Faysal Bank', 'Askari Bank',
-                'Soneri Bank', 'Summit Bank', 'Other'
+                'PepsiCo Pakistan', 'Other'
             ], key=f"company_{step}")
             custom_company = ""
             if company == 'Other':
                 custom_company = st.text_input("Custom Company", key=f"custom_company_{step}")
-            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering", "Retail", "Manufacturing", "Consulting", "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"], key=f"industry_{step}")
+            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"], key=f"industry_{step}")
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
             assessments = st.text_area("Gamified Assessments", key=f"assessments_{step}")
             interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
@@ -683,14 +677,64 @@ if st.session_state.firebase_user:
         st.query_params = {}
         st.stop()
 
+# ----------------------
+# Custom CSS Styling
+# ----------------------
 st.markdown("""
-<style>
-    [data-testid="stMetricValue"] { font-size: 18px; }
-    [data-testid="stMetricLabel"] { font-size: 16px; }
-    .stDataFrame { margin-bottom: 20px; }
-    [data-testid="stExpander"] div[role="button"] p { font-size: 1.2rem; font-weight: bold; }
-    .stButton>button { width: 100%; margin: 5px 0; transition: all 0.3s ease; }
-    .stButton>button:hover { transform: scale(1.05); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    .stContainer { border-radius: 10px; padding: 20px; margin: 10px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: #f8f9fa; }
-</style>
+    <style>
+        /* Overall Background & Font */
+        body {
+            background-color: #f0f2f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        /* Header Styling */
+        .css-18e3th9 {
+            font-size: 2.5rem;
+            color: #333333;
+            font-weight: 600;
+        }
+        /* Metric Cards */
+        [data-testid="stMetricValue"] {
+            font-size: 1.8rem;
+            color: #0a3d62;
+        }
+        [data-testid="stMetricLabel"] {
+            font-size: 1rem;
+            color: #57606f;
+        }
+        /* Data Editor and Expander Styling */
+        .stDataFrame, .st-expanderHeader, .css-1d391kg {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            padding: 16px;
+        }
+        /* Button Styling */
+        .stButton>button {
+            background-color: #0a3d62;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+        .stButton>button:hover {
+            background-color: #084c8d;
+            transform: scale(1.03);
+        }
+        /* Container Cards */
+        .stContainer {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        /* Sidebar */
+        .css-1lcbmhc {
+            background-color: #ffffff;
+            border-right: 1px solid #e2e2e2;
+        }
+    </style>
 """, unsafe_allow_html=True)
