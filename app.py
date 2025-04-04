@@ -629,7 +629,7 @@ def internship_feed():
                 st.write(f"**Red Flags:** {'🚩' * review.get('Red Flags', 0)}")
                 with st.expander("Details"):
                     st.write(f"**Assessments:** {review.get('Gamified Assessments', 'Unknown')}")
-                    st.write(f"**Questions:** {review.get('Interview Questions', 'Unknown')}")
+                    st.write(f"**Interview Questions:** {review.get('Interview Questions', 'Unknown')}")
             with col2:
                 st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
                 user_id = st.session_state.firebase_user["localId"]
