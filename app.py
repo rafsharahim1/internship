@@ -642,7 +642,7 @@ def user_profile():
                                           'Notes': notes}])
                 st.session_state.applications = pd.concat([st.session_state.applications, new_app], ignore_index=True)
                 save_applications()
-                st.stop()
+                st.rerun()
     
     edited_df = st.data_editor(st.session_state.applications,
                                column_config={"Deadline": st.column_config.DateColumn(),
@@ -683,8 +683,7 @@ def user_profile():
                 st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
-                internship_feed()  # directly display the feed with the edit form
-                st.stop()
+                st.rerun()
     else:
         st.write("You have not submitted any reviews yet.")
 
@@ -733,7 +732,7 @@ def internship_feed():
             st.session_state.show_form = False
             st.session_state.edit_review_index = None
             st.session_state.page = "📰 Internship Feed"
-            st.stop()
+            st.rerun()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
@@ -783,21 +782,25 @@ def internship_feed():
                         review_ref = db.collection("reviews").document(review['id'])
                         review_ref.update({"upvoters": firestore.ArrayRemove([user_id])})
                         load_data()
+                        st.rerun()
                 else:
                     if st.button(f"Upvote (👍 {len(upvoters)})", key=f"upvote_{idx}"):
                         review_ref = db.collection("reviews").document(review['id'])
                         review_ref.update({"upvoters": firestore.ArrayUnion([user_id])})
                         load_data()
+                        st.rerun()
                 if user_id in bookmarkers:
                     if st.button(f"Remove Bookmark (🔖 {len(bookmarkers)})", key=f"bookmark_{idx}"):
                         review_ref = db.collection("reviews").document(review['id'])
                         review_ref.update({"bookmarkers": firestore.ArrayRemove([user_id])})
                         load_data()
+                        st.rerun()
                 else:
                     if st.button(f"Bookmark (🔖 {len(bookmarkers)})", key=f"bookmark_{idx}"):
                         review_ref = db.collection("reviews").document(review['id'])
                         review_ref.update({"bookmarkers": firestore.ArrayUnion([user_id])})
                         load_data()
+                        st.rerun()
 
 # ----------------------
 # Main Flow Control
