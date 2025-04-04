@@ -430,6 +430,10 @@ def onboarding_process():
                         **data
                     }
                     db.collection("reviews").add(review)
+
+                load_data()
+                st.rerun()
+                
                 st.balloons()
                 db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
                 st.session_state.reviews_submitted = 2
