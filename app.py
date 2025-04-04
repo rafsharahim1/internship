@@ -436,9 +436,9 @@ def onboarding_process():
                 st.session_state.page = "👤 User Profile"  # Set new page for redirection
 
                 st.balloons()
-                # Use meta-refresh to force a reload
-                st.markdown("<meta http-equiv='refresh' content='0'>", unsafe_allow_html=True)
-                st.stop()
+                st.write("Your reviews have been submitted successfully!")
+                if st.button("Continue to Profile"):
+                    st.stop()  # Force a rerun so that the main flow loads the profile page
             except Exception as e:
                 st.error(f"Failed to save reviews: {str(e)}")
         else:
