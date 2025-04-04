@@ -402,11 +402,11 @@ def get_review_form(step):
             industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"], key=f"industry_{step}")
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
             assessments = st.text_area(
-                "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process. "
+                "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process. * "
                    ,
                 key=f"assessments_{step}"
             )
-            selected_gaming = st.multiselect("Select Gaming Assessment Options", options=gaming_options_list, key=f"gaming_{step}")
+            selected_gaming = st.multiselect("Select Gaming Assessment Options * ", options=gaming_options_list, key=f"gaming_{step}")
             custom_gaming = ""
             if "Other" in selected_gaming:
                 custom_gaming = st.text_input("Custom Gaming Option", key=f"custom_gaming_{step}")
@@ -414,10 +414,9 @@ def get_review_form(step):
             if "Other" in gaming_options and custom_gaming:
                 gaming_options[gaming_options.index("Other")] = custom_gaming
 
-            # NEW: Interview field (compulsory)
-            interview = st.text_input("Interview (required)", key=f"interview_{step}")
+        
             # NEW: Mode of Interview (multi-select)
-            mode_interview = st.multiselect("Mode of Interview (Select one or more)", options=interview_modes, key=f"mode_interview_{step}")
+            mode_interview = st.multiselect("Mode of Interview (Select one or more) * ", options=interview_modes, key=f"mode_interview_{step}")
             
             interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
             stipend = st.text_input("Stipend Range (Rs) (Optional)", key=f"stipend_{step}")
@@ -426,13 +425,13 @@ def get_review_form(step):
             referral = st.radio("Referral Used?", ["Yes", "No"], key=f"referral_{step}")
             red_flags = st.slider("Red Flags (1-5)[5 being the Biggest Red Flag]", 1, 5, 3, key=f"redflags_{step}")
             semester = st.slider("Semester", 1, 8, 5, key=f"sem_{step}")
-            interview_round = st.selectbox("Interview Round: Select your interview outcome (if any)", ["Yes. made it to interview", "No, did not make it to interview", "Waiting"], key=f"interview_round_{step}")
+            interview_round = st.selectbox("Interview Round: Select your interview outcome (if any) * ", ["Yes. made it to interview", "No, did not make it to interview", "Waiting"], key=f"interview_round_{step}")
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"], key=f"post_{step}")
         errors = []
         if company == 'Other' and not custom_company:
             errors.append("Company name required")
-        if not interview.strip():
+        if not interview_questions.strip():
             errors.append("Interview field is required")
         if not mode_interview:
             errors.append("At least one Mode of Interview must be selected")
