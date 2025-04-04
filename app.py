@@ -299,7 +299,7 @@ def review_form(review_to_edit=None):
     ]
     gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
                            "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
-                           "HackerRank Coding Assessments", "Other"]
+                           "HackerRank Coding Assessments",  "Behavioral" ,"Technical", "Other"]
     interview_modes = ["Virtual (Zoom/Teams)", "In-Person", "Digital", "No Interview"]
 
     with st.form("edit_review_form", clear_on_submit=True):
