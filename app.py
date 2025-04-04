@@ -476,7 +476,7 @@ def user_profile():
     st.write(f"**Program:** {user_profile_data.get('program', 'N/A')}")
     st.write(f"**Expected Graduation:** {user_profile_data.get('expected_grad_year', 'N/A')}")
     
-    st.title('User Job Application Dashboard')
+    st.title('User Dashboard')
     kpis = calculate_kpis()
     cols = st.columns(3)
     cols[0].metric("Applications", kpis['Total Applications'])
