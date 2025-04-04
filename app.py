@@ -538,30 +538,23 @@ def user_profile():
 # ----------------------
 def internship_feed():
     st.header("🎯 Internship Feed")
-    # --- Autocomplete for Company Search ---
-    # The text input outside the filter form will update dynamically.
-    company_search_input = st.text_input("Search by Company")
-    if company_search_input:
-        # Gather all company names from reviews (deduplicated)
-        all_companies = {review.get("Company", "") for review in st.session_state.reviews if review.get("Company", "")}
-        suggestions = sorted([comp for comp in all_companies if company_search_input.lower() in comp.lower()])
-        if suggestions:
-            chosen_company = st.selectbox("Did you mean:", options=suggestions, key="autocomplete")
-            if st.button("Use Suggestion", key="use_suggestion"):
-                company_search_input = chosen_company
+    
+    # Gather all company names from reviews, deduplicated.
+    all_companies = sorted({review.get("Company", "") for review in st.session_state.reviews if review.get("Company", "")})
+    # Add an "All" option.
+    company_options = ["All"] + all_companies
 
-    # --- Filter Form ---
+    # Filter Form with a single select box for Company search
     with st.form("filter_form"):
-        # Use company_search_input as default value inside the form
-        company_search = st.text_input("Company", value=company_search_input)
+        company_search = st.selectbox("Company", options=company_options, help="Type to search among companies")
         industry_filter = st.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
         stipend_range = st.slider("Stipend Range (Rs)", 0, 150000, (30000, 100000))
         program_filter = st.selectbox("Program Type", ["All", "MT Program", "Internship"])
         search_clicked = st.form_submit_button("Search")
     
-    # If search not clicked, use default filters
+    # If search is not clicked, default to no filtering.
     if not search_clicked:
-        company_search = ""
+        company_search = "All"
         industry_filter = "All"
         stipend_range = (0, 150000)
         program_filter = "All"
@@ -597,7 +590,7 @@ def internship_feed():
                 parts = stipend_val.split('-')
                 min_stipend, max_stipend = int(parts[0].strip()), int(parts[1].strip())
             matches = (
-                (company_search.lower() in review.get('Company', '').lower()) and
+                (company_search == "All" or company_search.lower() == review.get('Company', '').lower()) and
                 (industry_filter == "All" or review.get('Industry') == industry_filter) and
                 (program_filter == "All" or review.get('program_type') == program_filter) and
                 (min_stipend >= stipend_range[0]) and 
