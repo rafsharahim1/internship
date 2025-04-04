@@ -1,6 +1,3 @@
-Below is an example README that describes the code, its purpose, setup instructions, and potential use cases.
-
----
 
 # IBA Internship Portal
 
