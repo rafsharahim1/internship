@@ -255,7 +255,7 @@ def save_review(review_data, edit=False, review_doc_id=None):
             review_data['bookmarkers'] = review_data.get('bookmarkers', [])
             new_doc = reviews_ref.add(review_data)
             review_data['id'] = new_doc[1].id
-        load_data()  # Reload reviews after update
+        load_data()
     except Exception as e:
         st.error(f"Failed to save review: {str(e)}")
 
@@ -460,55 +460,6 @@ def review_form(review_to_edit=None):
             }
     return None
 
-# ----------------------
-# Onboarding Process
-# ----------------------
-def onboarding_process():
-    st.header("Complete Onboarding (2 Reviews Required)")
-    current_step = st.session_state.current_review_step
-    progress = (current_step + 1) / 2
-    st.progress(progress)
-    
-    review_data = get_review_form(current_step)
-    
-    if review_data:
-        st.session_state.review_data[current_step] = review_data
-        if current_step == 1:
-            try:
-                for i in range(2):
-                    data = st.session_state.review_data[i]
-                    review = {
-                        'user_id': st.session_state.firebase_user["localId"],
-                        'reviewer_name': st.session_state.user_profile.get('full_name', 'Anonymous') 
-                                         if data['Post As'] == "Use my full name" else "Anonymous",
-                        'timestamp': firestore.SERVER_TIMESTAMP,
-                        **data
-                    }
-                    db.collection("reviews").add(review)
-
-                load_data()
-                # Update the onboarding complete flag in Firestore and local session
-                db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
-                st.session_state.reviews_submitted = 2
-                st.session_state.page = "👤 User Profile"  # Set new page for redirection
-
-                st.balloons()
-                st.write("Your reviews have been submitted successfully!")
-                if st.button("Continue to Profile"):
-                    st.stop()  # Force a rerun so that the main flow loads the profile page
-            except Exception as e:
-                st.error(f"Failed to save reviews: {str(e)}")
-        else:
-            st.session_state.current_review_step += 1
-            st.stop()
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if current_step > 0:
-            if st.button("← Previous"):
-                st.session_state.current_review_step -= 1
-                st.stop()
-
 def get_review_form(step):
     gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
                            "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
@@ -540,6 +491,7 @@ def get_review_form(step):
             if "Other" in gaming_options and custom_gaming:
                 gaming_options[gaming_options.index("Other")] = custom_gaming
 
+            # NEW: Mode of Interview (multi-select)
             mode_interview = st.multiselect("Mode of Interview (Select one or more) * ", options=interview_modes, key=f"mode_interview_{step}")
             
             interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
@@ -590,7 +542,69 @@ def get_review_form(step):
                 return None
 
 # ----------------------
-# User Profile Page with Inline Editing for Reviews
+# Onboarding Process
+# ----------------------
+def onboarding_process():
+    st.header("Complete Onboarding (2 Reviews Required)")
+    current_step = st.session_state.current_review_step
+    progress = (current_step + 1) / 2
+    st.progress(progress)
+    
+    review_data = get_review_form(current_step)
+    
+    if review_data:
+        st.session_state.review_data[current_step] = review_data
+        if current_step == 1:
+            try:
+                for i in range(2):
+                    data = st.session_state.review_data[i]
+                    review = {
+                        'user_id': st.session_state.firebase_user["localId"],
+                        'reviewer_name': st.session_state.user_profile.get('full_name', 'Anonymous') 
+                                         if data['Post As'] == "Use my full name" else "Anonymous",
+                        'timestamp': firestore.SERVER_TIMESTAMP,
+                        **data
+                    }
+                    db.collection("reviews").add(review)
+
+                load_data()
+                # Update the onboarding complete flag in Firestore and local session
+                db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
+                st.session_state.reviews_submitted = 2
+                st.session_state.page = "👤 User Profile"  # Set new page for redirection
+
+                st.balloons()
+                st.write("Your reviews have been submitted successfully!")
+                if st.button("Continue to Profile"):
+                    st.stop()  # Force a rerun so that the main flow loads the profile page
+            except Exception as e:
+                st.error(f"Failed to save reviews: {str(e)}")
+        else:
+            st.session_state.current_review_step += 1
+            st.stop()
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if current_step > 0:
+            if st.button("← Previous"):
+                st.session_state.current_review_step -= 1
+                st.stop()
+
+# ----------------------
+# Sidebar Navigation and Page Storage
+# ----------------------
+if "page" not in st.session_state:
+    st.session_state.page = "👤 User Profile"
+
+page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed"),
+                          index=0 if st.session_state.get("page", "👤 User Profile") == "👤 User Profile" else 1)
+if profile_completed and not onboarding_complete:
+    st.session_state.page = "Onboarding"
+else:
+    st.session_state.page = page
+
+# ----------------------
+# User Profile Page
 # ----------------------
 def user_profile():
     st.subheader("Your Profile Information")
@@ -628,7 +642,7 @@ def user_profile():
                                           'Notes': notes}])
                 st.session_state.applications = pd.concat([st.session_state.applications, new_app], ignore_index=True)
                 save_applications()
-                st.rerun()
+                st.stop()
     
     edited_df = st.data_editor(st.session_state.applications,
                                column_config={"Deadline": st.column_config.DateColumn(),
@@ -655,7 +669,7 @@ def user_profile():
     else:
         st.write("No bookmarked reviews.")
     
-    # Display Your Reviews with option to Edit inline
+    # Display Your Reviews with Edit Option
     st.header("Your Reviews")
     user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
                     if review.get("user_id") == st.session_state.firebase_user["localId"]]
@@ -667,24 +681,12 @@ def user_profile():
             col1.caption(f"Reviewed by: {reviewer_display}")
             if col2.button("Edit", key=f"edit_{i}"):
                 st.session_state.edit_review_index = i
-                st.session_state.show_form = True
-                st.rerun()
+                st.session_state.show_form = True  
+                st.session_state.page = "📰 Internship Feed"
+                internship_feed()  # directly display the feed with the edit form
+                st.stop()
     else:
         st.write("You have not submitted any reviews yet.")
-    
-    # If edit mode is on, show the pre-populated review form inline
-    if st.session_state.show_form and st.session_state.edit_review_index is not None:
-        review_to_edit = st.session_state.reviews[st.session_state.edit_review_index]
-        st.subheader("Edit Your Review")
-        updated_review = review_form(review_to_edit)
-        if updated_review:
-            doc_id = review_to_edit['id']
-            save_review(updated_review, edit=True, review_doc_id=doc_id)
-            st.success("Review updated!")
-            st.session_state.show_form = False
-            st.session_state.edit_review_index = None
-            load_data()
-            st.rerun()
 
 # ----------------------
 # Internship Feed Page
@@ -694,8 +696,10 @@ def internship_feed():
     
     # Gather all company names from reviews, deduplicated.
     all_companies = sorted({review.get("Company", "") for review in st.session_state.reviews if review.get("Company", "")})
+    # Add an "All" option.
     company_options = ["All"] + all_companies
 
+    # Filter Form with a single select box for Company search
     with st.form("filter_form"):
         company_search = st.selectbox("Company", options=company_options, help="Type to search among companies")
         industry_filter = st.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
@@ -712,14 +716,24 @@ def internship_feed():
     if st.button("➕ Add Review"):
         st.session_state.show_form = True
         st.session_state.edit_review_index = None
-        # Show a blank review form for new submission
-        new_review = review_form()
-        if new_review:
-            save_review(new_review)
+    
+    review_to_edit = None
+    if st.session_state.edit_review_index is not None:
+        review_to_edit = st.session_state.reviews[st.session_state.edit_review_index]
+    
+    if st.session_state.show_form:
+        review_data = review_form(review_to_edit)
+        if review_data:
+            if st.session_state.edit_review_index is not None:
+                doc_id = st.session_state.reviews[st.session_state.edit_review_index]['id']
+                save_review(review_data, edit=True, review_doc_id=doc_id)
+            else:
+                save_review(review_data)
             st.success("Review Submitted!")
             st.session_state.show_form = False
-            load_data()
-            st.rerun()
+            st.session_state.edit_review_index = None
+            st.session_state.page = "📰 Internship Feed"
+            st.stop()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
