@@ -283,7 +283,7 @@ def validate_stipend(stipend):
         return False
 
 # ----------------------
-# New Editable Review Form Function with New Fields
+# New Editable Review Form Function with Pre-Populated Fields
 # ----------------------
 def review_form(review_to_edit=None):
     companies = [
@@ -297,50 +297,131 @@ def review_form(review_to_edit=None):
         'Interloop Limited', 'Nishat Group', 'Faysal Bank', 'Askari Bank',
         'Soneri Bank', 'Summit Bank', 'Other'
     ]
-    gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
-                           "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
-                           "HackerRank Coding Assessments",  "Behavioral" ,"Technical", "Other"]
+    gaming_options_list = [
+        "Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
+        "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
+        "HackerRank Coding Assessments",  "Behavioral" ,"Technical", "Other"
+    ]
     interview_modes = ["Virtual (Zoom/Teams)", "In-Person", "Digital", "No Interview"]
+
+    # Prepare default values if editing an existing review
+    default_program_type = review_to_edit.get("program_type") if review_to_edit else "MT Program"
+    default_company = review_to_edit.get("Company") if review_to_edit else companies[0]
+    default_industry = review_to_edit.get("Industry") if review_to_edit else "Tech"
+    default_ease = review_to_edit.get("Ease of Process") if review_to_edit else "Easy"
+    default_assessments = review_to_edit.get("Gamified Assessments", "") if review_to_edit else ""
+    default_gaming = review_to_edit.get("Gaming Options", []) if review_to_edit else []
+    default_mode_interview = review_to_edit.get("Mode of Interview", []) if review_to_edit else []
+    default_interview_questions = review_to_edit.get("Interview Questions", "") if review_to_edit else ""
+    default_stipend = review_to_edit.get("Stipend Range", "") if review_to_edit else ""
+    default_rating = review_to_edit.get("Rating", 3) if review_to_edit else 3
+    default_referral = review_to_edit.get("Referral Used", "No") if review_to_edit else "No"
+    default_red_flags = review_to_edit.get("Red Flags", 3) if review_to_edit else 3
+    default_semester = review_to_edit.get("Semester", 5) if review_to_edit else 5
+    default_interview_round = review_to_edit.get("Interview Round", "Waiting") if review_to_edit else "Waiting"
+    default_outcome = review_to_edit.get("Offer Outcome", "In Process") if review_to_edit else "In Process"
+    default_post_option = review_to_edit.get("Post As", "Use my full name") if review_to_edit else "Use my full name"
 
     with st.form("edit_review_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-            program_type = st.radio("Program Type", ["MT Program", "Internship"],
-                                     index=0 if (review_to_edit and review_to_edit.get("program_type") == "MT Program") else 1)
-            company = st.selectbox("Company", companies, index=0)
+            program_type = st.radio(
+                "Program Type", 
+                ["MT Program", "Internship"],
+                index=0 if default_program_type == "MT Program" else 1
+            )
+            try:
+                company_index = companies.index(default_company)
+            except ValueError:
+                company_index = 0
+            company = st.selectbox("Company", companies, index=company_index)
             custom_company = ""
             if company == "Other":
-                custom_company = st.text_input("Custom Company")
-            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering",
-                                                  "Retail", "Manufacturing", "Consulting",
-                                                  "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"])
-            ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
-            # Updated text area label for gamified assessments (prompt repeated once)
+                custom_company = st.text_input(
+                    "Custom Company", 
+                    value=review_to_edit.get("Company") if review_to_edit else ""
+                )
+            industry_options = ["Tech", "Finance", "Marketing", "HR", "Data/AI", "Engineering",
+                                "Retail", "Manufacturing", "Consulting",
+                                "Education", "Logistics", "Telecommunications", "Supply Chain", "Other"]
+            try:
+                industry_index = industry_options.index(default_industry)
+            except ValueError:
+                industry_index = 0
+            industry = st.selectbox("Industry", industry_options, index=industry_index)
+            ease_options = ["Easy", "Moderate", "Hard"]
+            try:
+                ease_index = ease_options.index(default_ease)
+            except ValueError:
+                ease_index = 0
+            ease_process = st.selectbox("Ease of Process", ease_options, index=ease_index)
             assessments = st.text_area(
                 "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process.",
+                value=default_assessments
             )
-            # New multi-select for Gaming Options
-            selected_gaming = st.multiselect("Select Gaming Assessment Options (You can select multiple)", options=gaming_options_list, default=[])
+            selected_gaming = st.multiselect(
+                "Select Gaming Assessment Options (You can select multiple)", 
+                options=gaming_options_list, 
+                default=default_gaming
+            )
             custom_gaming = ""
             if "Other" in selected_gaming:
-                custom_gaming = st.text_input("Custom Gaming Option")
+                custom_gaming = st.text_input("Custom Gaming Option", value="")
             gaming_options = selected_gaming.copy()
             if "Other" in gaming_options and custom_gaming:
                 gaming_options[gaming_options.index("Other")] = custom_gaming
 
-            # NEW: Mode of Interview (multi-select)
-            mode_interview = st.multiselect("Mode of Interview (Select one or more)", options=interview_modes)
-
-            interview_questions = st.text_area("Interview Questions Asked * ")
-            stipend = st.text_input("Stipend Range (Rs) [e.g 25000-30000] (Optional)")
+            default_mode_interview = default_mode_interview if isinstance(default_mode_interview, list) else []
+            mode_interview = st.multiselect(
+                "Mode of Interview (Select one or more)", 
+                options=interview_modes, 
+                default=default_mode_interview
+            )
+            interview_questions = st.text_area(
+                "Interview Questions Asked * ",
+                value=default_interview_questions
+            )
+            stipend = st.text_input(
+                "Stipend Range (Rs) [e.g 25000-30000] (Optional)",
+                value=default_stipend
+            )
         with col2:
-            hiring_rating = st.slider("Rating (1-5) [5 being the highest]", 1, 5, 3)
-            referral = st.radio("Referral Used?", ["Yes", "No"])
-            red_flags = st.slider("Red Flags (1-5) [5 being the biggest Red Flag]", 1, 5, 3)
-            semester = st.slider("Semester", 1, 8, 5)
-            interview_round = st.selectbox("Interview Round: Select your interview outcome (if any)", ["Yes. made it to interview", "No, did not make it to interview", "Waiting"])
-            outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"])
-            post_option = st.radio("Post As", ["Use my full name", "Anonymous"])
+            hiring_rating = st.slider(
+                "Rating (1-5) [5 being the highest]", 1, 5, default_rating
+            )
+            referral = st.radio(
+                "Referral Used?", ["Yes", "No"],
+                index=0 if default_referral=="Yes" else 1
+            )
+            red_flags = st.slider(
+                "Red Flags (1-5) [5 being the biggest Red Flag]", 1, 5, default_red_flags
+            )
+            semester = st.slider(
+                "Semester", 1, 8, default_semester
+            )
+            interview_round_options = ["Yes. made it to interview", "No, did not make it to interview", "Waiting"]
+            try:
+                interview_round_index = interview_round_options.index(default_interview_round)
+            except ValueError:
+                interview_round_index = 2
+            interview_round = st.selectbox(
+                "Interview Round: Select your interview outcome (if any)", 
+                interview_round_options,
+                index=interview_round_index
+            )
+            outcome_options = ["Accepted", "Rejected", "In Process"]
+            try:
+                outcome_index = outcome_options.index(default_outcome)
+            except ValueError:
+                outcome_index = 2
+            outcome = st.selectbox(
+                "Outcome", outcome_options,
+                index=outcome_index
+            )
+            post_option = st.radio(
+                "Post As", ["Use my full name", "Anonymous"],
+                index=0 if default_post_option=="Use my full name" else 1
+            )
         
         submitted = st.form_submit_button("Submit Review")
         if submitted:
@@ -460,6 +541,9 @@ def get_review_form(step):
                     st.error(error)
                 return None
 
+# ----------------------
+# Onboarding Process
+# ----------------------
 def onboarding_process():
     st.header("Complete Onboarding (2 Reviews Required)")
     current_step = st.session_state.current_review_step
