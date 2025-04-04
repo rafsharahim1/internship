@@ -300,7 +300,7 @@ def review_form(review_to_edit=None):
     gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
                            "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
                            "HackerRank Coding Assessments", "Other"]
-    interview_modes = ["Virtual (Zoom)", "Virtual (Teams)", "In-Person", "Digital"]
+    interview_modes = ["Virtual (Zoom/Teams)", "In-Person", "Digital", "No Interview"]
 
     with st.form("edit_review_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -318,8 +318,7 @@ def review_form(review_to_edit=None):
             # Updated text area label for gamified assessments (prompt repeated 3 times)
             assessments = st.text_area(
                 "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process. "
-                "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process. "
-                "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process.",
+               ,
             )
             # New multi-select for Gaming Options
             selected_gaming = st.multiselect("Select Gaming Assessment Options (You can select multiple)", options=gaming_options_list, default=[])
@@ -330,12 +329,11 @@ def review_form(review_to_edit=None):
             if "Other" in gaming_options and custom_gaming:
                 gaming_options[gaming_options.index("Other")] = custom_gaming
 
-            # NEW: Interview (compulsory)
-            interview = st.text_input("Interview (required)")
+            
             # NEW: Mode of Interview (multi-select)
             mode_interview = st.multiselect("Mode of Interview (Select one or more)", options=interview_modes)
 
-            interview_questions = st.text_area("Interview Questions Asked")
+            interview_questions = st.text_area("Interview Questions Asked * ")
             stipend = st.text_input("Stipend Range (Rs) [e.g 25000-30000] (Optional)")
         with col2:
             hiring_rating = st.slider("Rating (1-5) [5 being the highest]", 1, 5, 3)
@@ -351,7 +349,7 @@ def review_form(review_to_edit=None):
             errors = []
             if company == "Other" and not custom_company:
                 errors.append("Company name required")
-            if not interview.strip():
+            if not interview_questions.strip():
                 errors.append("Interview field is required")
             if not mode_interview:
                 errors.append("At least one Mode of Interview must be selected")
@@ -405,8 +403,7 @@ def get_review_form(step):
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
             assessments = st.text_area(
                 "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process. "
-                "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process. "
-                "How was your experience with the gamified assessment? Kindly provide details about the tasks, challenges, and how you felt during the process.",
+                   ,
                 key=f"assessments_{step}"
             )
             selected_gaming = st.multiselect("Select Gaming Assessment Options", options=gaming_options_list, key=f"gaming_{step}")
