@@ -286,49 +286,31 @@ def review_form(review_to_edit=None):
     companies = ['Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
                  'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
                  'PepsiCo Pakistan', 'Other']
-    industries = ["Tech", "Finance", "Marketing", "HR", "Other"]
-    ease_options = ["Easy", "Moderate", "Hard"]
-    outcomes = ["Accepted", "Rejected", "In Process"]
-    departments = ["Tech", "Finance", "HR", "Marketing", "Operations"]
-    
-    default_company = review_to_edit.get("Company", companies[0]) if review_to_edit else companies[0]
-    default_company_index = companies.index(default_company) if default_company in companies else companies.index("Other")
-    
-    default_industry = review_to_edit.get("Industry", industries[0]) if review_to_edit else industries[0]
-    default_industry_index = industries.index(default_industry) if default_industry in industries else 0
-    
-    default_ease = review_to_edit.get("Ease of Process", ease_options[0]) if review_to_edit else ease_options[0]
-    default_ease_index = ease_options.index(default_ease) if default_ease in ease_options else 0
-    
-    default_outcome = review_to_edit.get("Offer Outcome", outcomes[0]) if review_to_edit else outcomes[0]
-    default_outcome_index = outcomes.index(default_outcome) if default_outcome in outcomes else 0
-    
-    default_department = review_to_edit.get("Department", departments[0]) if review_to_edit else departments[0]
-    default_department_index = departments.index(default_department) if default_department in departments else 0
-    
-    default_referral = review_to_edit.get("referral", "Yes") if review_to_edit else "Yes"
-    default_post = review_to_edit.get("post_option", "Use my full name") if review_to_edit else "Use my full name"
     
     with st.form("edit_review_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-            company = st.selectbox("Company", companies, index=default_company_index, key="edit_company")
+            # New Program Type Field
+            program_type = st.radio("Program Type", ["MT Program", "Internship"],
+                                    index=0 if (review_to_edit and review_to_edit.get("program_type") == "MT Program") else 1)
+            
+            company = st.selectbox("Company", companies, index=0)
             custom_company = ""
             if company == "Other":
-                custom_company = st.text_input("Custom Company", value=review_to_edit.get("Custom Company", "") if review_to_edit else "", key="edit_custom_company")
-            industry = st.selectbox("Industry", industries, index=default_industry_index, key="edit_industry")
-            ease_process = st.selectbox("Ease of Process", ease_options, index=default_ease_index, key="edit_ease")
-            assessments = st.text_area("Gamified Assessments", value=review_to_edit.get("assessments", "") if review_to_edit else "", key="edit_assessments")
-            interview_questions = st.text_area("Interview Questions", value=review_to_edit.get("interview_questions", "") if review_to_edit else "", key="edit_questions")
-            stipend = st.text_input("Stipend Range (Rs) (Optional)", value=review_to_edit.get("stipend", "") if review_to_edit else "", key="edit_stipend")
+                custom_company = st.text_input("Custom Company")
+            industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"])
+            ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
+            assessments = st.text_area("Gamified Assessments")
+            interview_questions = st.text_area("Interview Questions")
+            stipend = st.text_input("Stipend Range (Rs) (Optional)")
         with col2:
-            hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, value=review_to_edit.get("hiring_rating", 3) if review_to_edit else 3, key="edit_hiring")
-            referral = st.radio("Referral Used?", ["Yes", "No"], index=0 if default_referral=="Yes" else 1, key="edit_referral")
-            red_flags = st.slider("Red Flags (1-5)", 1, 5, value=review_to_edit.get("red_flags", 3) if review_to_edit else 3, key="edit_redflags")
-            department = st.selectbox("Department", departments, index=default_department_index, key="edit_department")
-            semester = st.slider("Semester", 1, 8, value=review_to_edit.get("semester", 5) if review_to_edit else 5, key="edit_semester")
-            outcome = st.selectbox("Outcome", outcomes, index=default_outcome_index, key="edit_outcome")
-            post_option = st.radio("Post As", ["Use my full name", "Anonymous"], index=0 if default_post=="Use my full name" else 1, key="edit_post")
+            hiring_rating = st.slider("Hiring Ease (1-5)", 1, 5, 3)
+            referral = st.radio("Referral Used?", ["Yes", "No"])
+            red_flags = st.slider("Red Flags (1-5)", 1, 5, 3)
+            department = st.selectbox("Department", ["Tech", "Finance", "HR", "Marketing", "Operations"])
+            semester = st.slider("Semester", 1, 8, 5)
+            outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"])
+            post_option = st.radio("Post As", ["Use my full name", "Anonymous"])
         
         submitted = st.form_submit_button("Submit Review")
         if submitted:
@@ -341,27 +323,29 @@ def review_form(review_to_edit=None):
                 for error in errors:
                     st.error(error)
                 return None
-            review_data = {
+            return {
+                "program_type": program_type,  # New field
                 "Company": custom_company if company == "Other" else company,
                 "Industry": industry,
                 "Ease of Process": ease_process,
-                "assessments": assessments,
-                "interview_questions": interview_questions,
-                "stipend": stipend,
-                "hiring_rating": hiring_rating,
-                "referral": referral,
-                "red_flags": red_flags,
+                "Gamified Assessments": assessments,
+                "Interview Questions": interview_questions,
+                "Stipend Range": stipend,
+                "Ease of Hiring": hiring_rating,
+                "Referral Used": referral,
+                "Red Flags": red_flags,
                 "Department": department,
                 "Semester": semester,
                 "Offer Outcome": outcome,
-                "post_option": post_option
+                "Post As": post_option
             }
-            return review_data
     return None
 
 def get_review_form(step):
     # Onboarding review form; similar to edit but without pre-population.
     with st.form(key=f"onboarding_review_form_{step}"):
+        # New Program Type Field in Onboarding Form
+        program_type = st.radio("Program Type", ["MT Program", "Internship"], key=f"program_type_{step}")
         col1, col2 = st.columns(2)
         with col1:
             company = st.selectbox("Company", [
@@ -394,19 +378,20 @@ def get_review_form(step):
         if submitted:
             if not errors:
                 return {
-                    'company': custom_company if company == 'Other' else company,
-                    'industry': industry,
-                    'ease_process': ease_process,
-                    'assessments': assessments,
-                    'interview_questions': interview_questions,
-                    'stipend': stipend,
-                    'hiring_rating': hiring_rating,
-                    'referral': referral,
-                    'red_flags': red_flags,
-                    'department': department,
-                    'semester': semester,
-                    'outcome': outcome,
-                    'post_option': post_option
+                    "program_type": program_type,  # New field
+                    "Company": custom_company if company == 'Other' else company,
+                    "Industry": industry,
+                    "Ease of Process": ease_process,
+                    "Gamified Assessments": assessments,
+                    "Interview Questions": interview_questions,
+                    "Stipend Range": stipend,
+                    "Ease of Hiring": hiring_rating,
+                    "Referral Used": referral,
+                    "Red Flags": red_flags,
+                    "Department": department,
+                    "Semester": semester,
+                    "Offer Outcome": outcome,
+                    "Post As": post_option
                 }
             else:
                 for error in errors:
@@ -430,7 +415,7 @@ def onboarding_process():
                     review = {
                         'user_id': st.session_state.firebase_user["localId"],
                         'reviewer_name': st.session_state.user_profile.get('full_name', 'Anonymous') 
-                                         if data['post_option'] == "Use my full name" else "Anonymous",
+                                         if data['Post As'] == "Use my full name" else "Anonymous",
                         'timestamp': firestore.SERVER_TIMESTAMP,
                         **data
                     }
@@ -539,7 +524,6 @@ def user_profile():
             reviewer_display = review.get("reviewer_name", "Anonymous")
             col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')})** - {review.get('Offer Outcome', 'Unknown')}")
             col1.caption(f"Reviewed by: {reviewer_display}")
-            # When Edit is clicked, immediately switch to the feed and pre-populate the form.
             if col2.button("Edit", key=f"edit_{i}"):
                 st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
@@ -554,12 +538,23 @@ def user_profile():
 # ----------------------
 def internship_feed():
     st.header("🎯 Internship Feed")
-    col1, col2, col3, col4 = st.columns([2,2,2,1])
-    company_search = col1.text_input("Search by Company")
-    industry_filter = col2.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
-    stipend_range = col3.slider("Stipend Range (Rs)", 0, 150000, (30000, 100000))
+    # Wrap search and filter inputs in a form with a clickable Search button
+    with st.form("filter_form"):
+        col1, col2, col3, col4, col5 = st.columns(5)
+        company_search = col1.text_input("Search by Company")
+        industry_filter = col2.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
+        stipend_range = col3.slider("Stipend Range (Rs)", 0, 150000, (30000, 100000))
+        program_filter = col4.selectbox("Program Type", ["All", "MT Program", "Internship"])
+        search_clicked = col5.form_submit_button("Search")
     
-    if col4.button("➕ Add Review"):
+    # If search not clicked, use default filters (i.e., show all reviews)
+    if not search_clicked:
+        company_search = ""
+        industry_filter = "All"
+        stipend_range = (0, 150000)
+        program_filter = "All"
+    
+    if st.button("➕ Add Review"):
         st.session_state.show_form = True
         st.session_state.edit_review_index = None
     
@@ -586,21 +581,23 @@ def internship_feed():
         try:
             stipend_val = review.get('Stipend Range', '0-0')
             min_stipend = max_stipend = 0
-            if stipend_val != "Not Specified":
+            if stipend_val != "Not Specified" and '-' in stipend_val:
                 parts = stipend_val.split('-')
                 min_stipend, max_stipend = int(parts[0].strip()), int(parts[1].strip())
             matches = (
                 (company_search.lower() in review.get('Company', '').lower()) and
                 (industry_filter == "All" or review.get('Industry') == industry_filter) and
+                (program_filter == "All" or review.get('program_type') == program_filter) and
                 (min_stipend >= stipend_range[0]) and 
                 (max_stipend <= stipend_range[1])
             )
             if matches:
                 filtered_reviews.append(review)
-        except:
+        except Exception as e:
             continue
     
     st.subheader("Top Reviews")
+    # Sort reviews by number of upvotes (if available) and show top 5
     for idx, review in enumerate(sorted(filtered_reviews, key=lambda x: len(x.get("upvoters", [])), reverse=True)[:5]):
         with st.container():
             col1, col2 = st.columns([4,1])
