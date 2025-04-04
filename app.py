@@ -386,7 +386,7 @@ def get_review_form(step):
     gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
                            "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
                            "HackerRank Coding Assessments", "Other"]
-    interview_modes = ["Virtual (Zoom)", "Virtual (Teams)", "In-Person", "Digital"]
+    interview_modes = ["Virtual (Zoom)", "Virtual (Teams)", "In-Person", "Digital" , "No Interview" ]
     with st.form(key=f"onboarding_review_form_{step}"):
         program_type = st.radio("Program Type", ["MT Program", "Internship"], key=f"program_type_{step}")
         col1, col2 = st.columns(2)
