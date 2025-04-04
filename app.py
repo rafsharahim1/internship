@@ -312,7 +312,7 @@ def review_form(review_to_edit=None):
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"])
             assessments = st.text_area("Gamified Assessments")
             interview_questions = st.text_area("Interview Questions")
-            stipend = st.text_input("Stipend Range (Rs) (Optional)")
+            stipend = st.text_input("Stipend Range (Rs) [e.g 25000-30000] (Optional)")
         with col2:
             hiring_rating = st.slider("Rating (1-5) [5 being the highest] ", 1, 5, 3)
             referral = st.radio("Referral Used?", ["Yes", "No"])
@@ -558,7 +558,7 @@ def internship_feed():
     with st.form("filter_form"):
         company_search = st.selectbox("Company", options=company_options, help="Type to search among companies")
         industry_filter = st.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
-        stipend_range = st.slider("Stipend Range (Rs)", 0, 150000, (30000, 100000))
+        stipend_range = st.slider("Stipend Range (Rs)", 0, 250000, (0, 100000))
         program_filter = st.selectbox("Program Type", ["All", "MT Program", "Internship"])
         search_clicked = st.form_submit_button("Search")
     
