@@ -1,15 +1,3 @@
-Below is your updated full code. The changes focus on storing the review to be edited in a dedicated session state variable (named review_to_edit) so that when you click the “Edit” button, the internship feed page loads with the prefilled form. When the review is edited and submitted, the updated data is saved to Firebase and the frontend refreshes.
-
-### Key changes made:
-1. In the **User Profile** page, when the Edit button is clicked, the review to be edited is stored in st.session_state.review_to_edit (instead of only setting edit_review_index).
-2. In the **Internship Feed** page, if st.session_state.review_to_edit exists, it’s passed to the review form so that default values are prefilled.
-3. After a successful edit, the session state variable is cleared so subsequent actions start fresh.
-
-Below is the complete updated code:
-
----
-
-```python
 import streamlit as st    
 import pandas as pd
 import firebase_admin
@@ -896,21 +884,3 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-```
-
----
-
-### How It Works Now
-
-- **Editing a Review:**  
-  In the user profile, clicking the Edit button saves the entire review object to st.session_state.review_to_edit. Then the internship feed page is reloaded and, if review_to_edit exists, the review_form is called with those defaults prefilled.
-
-- **Saving Changes:**  
-  When the form is submitted while editing, the save_review function updates the corresponding Firebase document (using the stored document ID). The session state is then refreshed (via load_data) so that your changes are visible on the feed.
-
-- **Clearing the Edit State:**  
-  After a successful edit, st.session_state.review_to_edit is cleared so that the form will be blank if a new review is added.
-
-Test this updated code, and your internship feed page should now correctly prefill the form when editing a review, update Firebase on submission, and reflect the changes on the frontend.
-
-Let me know if you have any further questions or issues!
