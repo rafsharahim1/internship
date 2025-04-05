@@ -896,7 +896,7 @@ if st.session_state.page == "👤 User Profile":
     user_profile()
 elif st.session_state.page == "📰 Internship Feed":
     internship_feed()
-else st.session_state.page == "Our Vision":
+elif st.session_state.page == "Our Vision":
     our_vision()
     
 
