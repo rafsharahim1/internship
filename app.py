@@ -286,6 +286,9 @@ def validate_stipend(stipend):
 # New Editable Review Form Function with Pre-Populated Fields
 # ----------------------
 def review_form(review_to_edit=None):
+    # Use a unique key based on whether we're editing an existing review or adding a new one.
+    form_key = "edit_review_form" if review_to_edit else "new_review_form"
+    
     companies = [
         'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
         'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
@@ -304,7 +307,7 @@ def review_form(review_to_edit=None):
     ]
     interview_modes = ["Virtual (Zoom/Teams)", "In-Person", "Digital", "No Interview"]
 
-    # Prepare default values if editing an existing review
+    # Set default values if editing an existing review.
     default_program_type = review_to_edit.get("program_type") if review_to_edit else "MT Program"
     default_company = review_to_edit.get("Company") if review_to_edit else companies[0]
     default_industry = review_to_edit.get("Industry") if review_to_edit else "Tech"
@@ -322,7 +325,7 @@ def review_form(review_to_edit=None):
     default_outcome = review_to_edit.get("Offer Outcome", "In Process") if review_to_edit else "In Process"
     default_post_option = review_to_edit.get("Post As", "Use my full name") if review_to_edit else "Use my full name"
 
-    with st.form("edit_review_form", clear_on_submit=True):
+    with st.form(form_key, clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             program_type = st.radio(
@@ -459,6 +462,7 @@ def review_form(review_to_edit=None):
                 "Post As": post_option
             }
     return None
+
 
 def get_review_form(step):
     gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
@@ -696,9 +700,8 @@ def user_profile():
 # Internship Feed Page
 # ----------------------
 def internship_feed():
-    # If a review is being edited (or a new review is being added), display the form at the top.
+    # If a review is being edited or added, display the form at the top of the page.
     if st.session_state.get("show_form", False):
-        # Create an empty container at the top of the page for the review form.
         form_container = st.empty()
         with form_container.container():
             review_to_edit = st.session_state.get("review_to_edit")
@@ -710,19 +713,16 @@ def internship_feed():
                 else:
                     save_review(review_data)
                 st.success("Review Submitted!")
-                # Reset the form state.
                 st.session_state.show_form = False
                 st.session_state.review_to_edit = None
                 st.rerun()
-                
+
     st.header("🎯 Internship Feed")
     
-    # Gather all company names from reviews, deduplicated.
+    # Filter reviews based on user input.
     all_companies = sorted({review.get("Company", "") for review in st.session_state.reviews if review.get("Company", "")})
-    # Add an "All" option.
     company_options = ["All"] + all_companies
 
-    # Filter Form with a single select box for Company search
     with st.form("filter_form"):
         company_search = st.selectbox("Company", options=company_options, help="Type to search among companies")
         industry_filter = st.selectbox("Industry", ["All", "Tech", "Finance", "Marketing", "HR"])
@@ -730,6 +730,7 @@ def internship_feed():
         program_filter = st.selectbox("Program Type", ["All", "MT Program", "Internship"])
         search_clicked = st.form_submit_button("Search")
     
+    # Default filter values if not searched.
     if not search_clicked:
         company_search = "All"
         industry_filter = "All"
@@ -739,23 +740,7 @@ def internship_feed():
     if st.button("➕ Add Review"):
         st.session_state.show_form = True
         st.session_state.review_to_edit = None
-    
-    # If a review is being edited, retrieve it from session state
-    review_to_edit = st.session_state.get("review_to_edit")
-    
-    if st.session_state.show_form:
-        review_data = review_form(review_to_edit)
-        if review_data:
-            if review_to_edit:  # Editing existing review
-                doc_id = review_to_edit["id"]  # Use the Firestore document ID
-                save_review(review_data, edit=True, review_doc_id=doc_id)
-            else:
-                save_review(review_data)
-            st.success("Review Submitted!")
-            st.session_state.show_form = False
-            st.session_state.review_to_edit = None
-            st.session_state.page = "📰 Internship Feed"
-            st.rerun()
+        st.rerun()
     
     filtered_reviews = []
     for review in st.session_state.reviews:
@@ -774,7 +759,7 @@ def internship_feed():
             )
             if matches:
                 filtered_reviews.append(review)
-        except Exception as e:
+        except Exception:
             continue
     
     st.subheader("Top Reviews")
@@ -824,6 +809,7 @@ def internship_feed():
                         review_ref.update({"bookmarkers": firestore.ArrayUnion([user_id])})
                         load_data()
                         st.rerun()
+
 
 # ----------------------
 # Main Flow Control
