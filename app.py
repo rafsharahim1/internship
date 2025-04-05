@@ -251,8 +251,12 @@ def save_review(review_data, edit=False, review_doc_id=None):
         if edit and review_doc_id:
             reviews_ref.document(review_doc_id).update(review_data)
         else:
+            # Add additional fields for new reviews so they appear in the user's profile
             review_data['upvoters'] = review_data.get('upvoters', [])
             review_data['bookmarkers'] = review_data.get('bookmarkers', [])
+            review_data['user_id'] = st.session_state.firebase_user["localId"]
+            review_data['reviewer_name'] = st.session_state.user_profile.get('full_name', 'Anonymous') if review_data.get("Post As") == "Use my full name" else "Anonymous"
+            review_data['timestamp'] = firestore.SERVER_TIMESTAMP
             new_doc = reviews_ref.add(review_data)
             review_data['id'] = new_doc[1].id
         load_data()
