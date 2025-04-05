@@ -851,7 +851,9 @@ def internship_feed():
         with st.container():
             col1, col2 = st.columns([4,1])
             with col1:
-                st.markdown(f"### {review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')}) - {review.get('program_type', 'Unknown')}")
+                # Prepare spam display text
+                spam_text = "POTENTIAL SPAM - " if review.get("is_spam", False) else ""
+                st.markdown(f"### {spam_text}{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')}) - {review.get('program_type', 'Unknown')}")
                 st.caption(f"🎓 Semester {review.get('Semester', 'Unknown')}")
                 st.write(f"**Process:** {review.get('Ease of Process', 'Unknown')}")
                 st.write(f"**Stipend:** {review.get('Stipend Range', 'Unknown')}")
@@ -894,6 +896,7 @@ def internship_feed():
                         review_ref.update({"bookmarkers": firestore.ArrayUnion([user_id])})
                         load_data()
                         st.rerun()
+
 
 # ----------------------
 # Main Flow Control
