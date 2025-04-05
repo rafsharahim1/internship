@@ -612,8 +612,8 @@ def onboarding_process():
 if "page" not in st.session_state:
     st.session_state.page = "👤 User Profile"
 
-page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed"),
-                          index=0 if st.session_state.get("page", "👤 User Profile") == "👤 User Profile" else 1)
+page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed", "Our Vision"),
+                          index=0 if st.session_state.get("page", "👤 User Profile") == "👤 User Profile" else 2)
 # Force Internship Feed if the edit form is active
 if st.session_state.get("show_form", False):
     st.session_state.page = "📰 Internship Feed"
@@ -621,6 +621,60 @@ elif profile_completed and not onboarding_complete:
     st.session_state.page = "Onboarding"
 else:
     st.session_state.page = page
+
+
+
+def our_vision():
+    st.title("Our Vision")
+    
+    # Vision Description Section
+   
+    # Vision Description Section
+    st.markdown("""
+    Welcome to the heart of our platform—where your journey towards a successful internship begins. Our vision is to empower IBA students by transforming the way internships are discovered, experienced, and shared.
+    
+    **Transparent and Real Experiences:**  
+    Our app is designed to create a trusted space where every application, interview, and review is shared openly. We believe that honest feedback and real stories from peers are the keys to making informed career decisions.
+    
+    **Community-Driven Growth:**  
+    By connecting you with fellow students and industry professionals, we foster a community where insights, tips, and support are just a click away. Our platform not only tracks your applications but also enables you to learn from the collective experiences of your peers.
+    
+    **Innovative Internship Navigation:**  
+    Harnessing the power of intuitive analytics and user-driven feedback, our app simplifies the complexities of the internship process. From tracking your progress to accessing detailed reviews, every feature is crafted to guide you towards success in a competitive environment.
+    
+    Let our vision inspire you to embrace every opportunity and step confidently into your professional future.
+    """)
+    
+    st.markdown("---")
+
+    
+    # Feedback Form Section
+    st.header("We Value Your Feedback")
+    st.markdown("Help us improve by sharing your thoughts and suggestions.")
+    
+    with st.form("feedback_form", clear_on_submit=True):
+        feedback_name = st.text_input("Name")
+        feedback_email = st.text_input("Email")
+        feedback_message = st.text_area("Your Feedback")
+        submitted = st.form_submit_button("Submit Feedback")
+        if submitted:
+            if not feedback_name.strip() or not feedback_email.strip() or not feedback_message.strip():
+                st.error("Please fill out all the fields.")
+            else:
+                # Create a dictionary to store the feedback
+                feedback_data = {
+                    "name": feedback_name,
+                    "email": feedback_email,
+                    "feedback": feedback_message,
+                    "timestamp": firestore.SERVER_TIMESTAMP
+                }
+                try:
+                    # Store the feedback in the "feedback" collection in Firestore
+                    db.collection("feedback").add(feedback_data)
+                    st.success("Thank you for your valuable feedback!")
+                except Exception as e:
+                    st.error(f"An error occurred while submitting your feedback: {e}")
+
 
 # ----------------------
 # User Profile Page
