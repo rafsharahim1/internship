@@ -614,15 +614,16 @@ if "page" not in st.session_state:
 
 page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed", "Our Vision"),
                           index=0 if st.session_state.get("page", "👤 User Profile") == "👤 User Profile" else 2)
-# Force Internship Feed if the edit form is active
-if st.session_state.get("show_form", False):
+
+if page == "Our Vision":
+    st.session_state.page = "Our Vision"
+elif st.session_state.get("show_form", False):
     st.session_state.page = "📰 Internship Feed"
 elif profile_completed and not onboarding_complete:
     st.session_state.page = "Onboarding"
-elif st.session_state.page == "Our Vision":
-    our_vision()
 else:
     st.session_state.page = page
+
 
 
 
