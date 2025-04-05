@@ -696,6 +696,25 @@ def user_profile():
 # Internship Feed Page
 # ----------------------
 def internship_feed():
+    # If a review is being edited (or a new review is being added), display the form at the top.
+    if st.session_state.get("show_form", False):
+        # Create an empty container at the top of the page for the review form.
+        form_container = st.empty()
+        with form_container.container():
+            review_to_edit = st.session_state.get("review_to_edit")
+            review_data = review_form(review_to_edit)
+            if review_data:
+                if review_to_edit:  # Editing an existing review.
+                    doc_id = review_to_edit["id"]
+                    save_review(review_data, edit=True, review_doc_id=doc_id)
+                else:
+                    save_review(review_data)
+                st.success("Review Submitted!")
+                # Reset the form state.
+                st.session_state.show_form = False
+                st.session_state.review_to_edit = None
+                st.rerun()
+                
     st.header("🎯 Internship Feed")
     
     # Gather all company names from reviews, deduplicated.
