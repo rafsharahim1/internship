@@ -697,8 +697,8 @@ def user_profile():
                 st.session_state.edit_review_id = review['id']
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
-                st.query_params(page="📰 Internship Feed")
                 st.rerun()
+
 
     else:
         st.write("You have not submitted any reviews yet.")
