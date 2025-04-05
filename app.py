@@ -622,15 +622,7 @@ elif profile_completed and not onboarding_complete:
 else:
     st.session_state.page = page
 
-# Render the selected page
-if st.session_state.page == "👤 User Profile":
-    user_profile()
-elif st.session_state.page == "📰 Internship Feed":
-    internship_feed()
-elif st.session_state.page == "Our Vision":
-    our_vision()
-elif st.session_state.page == "Onboarding":
-    onboarding_page()
+
 
 
 
