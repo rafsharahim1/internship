@@ -6,6 +6,28 @@ from datetime import datetime, date
 import requests
 
 # ----------------------
+# Spam/Anomaly Detection Helper
+# ----------------------
+def detect_spam(review_text):
+    """
+    Simple heuristic-based spam detector.
+    Flags review as spam if:
+      - The text is very short (less than 5 words), or
+      - It contains common spam keywords.
+    """
+    spam_keywords = ["buy now", "free", "click here", "subscribe", "check out", "discount", "offer", "promo"]
+    words = review_text.split()
+    # Consider review spam if it's too short.
+    if len(words) < 5:
+        return True
+    # Check for spam keywords.
+    lower_text = review_text.lower()
+    for keyword in spam_keywords:
+        if keyword in lower_text:
+            return True
+    return False
+
+# ----------------------
 # Firebase Initialization
 # ----------------------
 if not firebase_admin._apps:
@@ -71,18 +93,17 @@ if 'firebase_user' not in st.session_state:
         'contributions': pd.DataFrame(),
         'bookmarks': [],
         'reviews': [],
-        'show_form': False,           # Ensure this exists
-        'review_to_edit': None,       # Ensure this exists
+        'show_form': False,
+        'review_to_edit': None,
         'data_loaded': False,
-        'page': "👤 User Profile",    # Default page
+        'page': "👤 User Profile",
         'dummy': False,
         'show_forgot': False,
-        # New state for onboarding reviews
         'reviews_submitted': 0,
         'current_review_step': 0,
         'review_data': [{} for _ in range(2)],
         'user_profile': {},
-        'profile_saved': False  # Flag for profile saved
+        'profile_saved': False
     })
 
 query_params = st.query_params
@@ -95,13 +116,9 @@ if not st.session_state.firebase_user:
 —just spill the tea and let your honest experience shine. We’re here to help you make informed decisions without the gatekeeping drama. So drop your insights, and let’s keep the intern scoop real and unfiltered!"""
     )
 
-
 # ----------------------
 # Authentication Interface
 # ----------------------
-
-
-
 if not st.session_state.firebase_user:
     st.title("IBA Internship Portal")
     login_tab, register_tab = st.tabs(["Login", "Register"])
@@ -116,7 +133,7 @@ if not st.session_state.firebase_user:
                         st.error("Only IBA email addresses allowed")
                     else:
                         user_info = sign_in_with_email_and_password(email, password)
-                        st.session_state.firebase_user = user_info  # localId acts as UID
+                        st.session_state.firebase_user = user_info
                         st.query_params = {"page": st.session_state.page}
                         st.stop()
                 except Exception as e:
@@ -180,7 +197,7 @@ def complete_profile():
                 "program": program,
                 "expected_grad_year": grad_year,
                 "profile_completed": True,
-                "onboarding_complete": False  # Initially false
+                "onboarding_complete": False
             }
             try:
                 user_ref = db.collection("users").document(st.session_state.firebase_user["localId"])
@@ -269,6 +286,14 @@ def save_review(review_data, edit=False, review_doc_id=None):
             review_data['timestamp'] = firestore.SERVER_TIMESTAMP
             new_doc = reviews_ref.add(review_data)
             review_data['id'] = new_doc[1].id
+            # If review is flagged as spam, add an alert entry for admin review
+            if review_data.get("is_spam"):
+                db.collection("spam_alerts").add({
+                    "review_id": review_data['id'],
+                    "user_id": st.session_state.firebase_user["localId"],
+                    "timestamp": firestore.SERVER_TIMESTAMP,
+                    "message": "Potential spam review detected."
+                })
         load_data()
     except Exception as e:
         st.error(f"Failed to save review: {str(e)}")
@@ -297,10 +322,10 @@ def validate_stipend(stipend):
         return False
 
 # ----------------------
-# New Editable Review Form Function with Pre-Populated Fields
+# New Editable Review Form Function with Anomaly Detection / Spam Filtering
 # ----------------------
 def review_form(review_to_edit=None):
-    # Use a unique form key based on whether editing or adding a new review.
+    # Unique form key for adding or editing reviews.
     form_key = "edit_review_form" if review_to_edit else "new_review_form"
 
     companies = [
@@ -321,7 +346,6 @@ def review_form(review_to_edit=None):
     ]
     interview_modes = ["Virtual (Zoom/Teams)", "In-Person", "Digital", "No Interview"]
 
-    # Prepare default values if editing an existing review.
     default_program_type = review_to_edit.get("program_type") if review_to_edit else "MT Program"
     default_company = review_to_edit.get("Company") if review_to_edit else companies[0]
     default_industry = review_to_edit.get("Industry") if review_to_edit else "Tech"
@@ -457,6 +481,12 @@ def review_form(review_to_edit=None):
                 for error in errors:
                     st.error(error)
                 return None
+
+            # --- Anomaly Detection / Spam Filtering Integration ---
+            # Combine key text fields to check for spam.
+            combined_text = assessments + " " + interview_questions
+            is_spam = detect_spam(combined_text)
+
             return {
                 "program_type": program_type,
                 "Company": custom_company if company == "Other" else company,
@@ -473,7 +503,8 @@ def review_form(review_to_edit=None):
                 "Semester": semester,
                 "Interview Round": interview_round,
                 "Offer Outcome": outcome,
-                "Post As": post_option
+                "Post As": post_option,
+                "is_spam": is_spam
             }
     return None
 
@@ -534,6 +565,9 @@ def get_review_form(step):
         submitted = st.form_submit_button("Submit Review ➡️")
         if submitted:
             if not errors:
+                # --- Anomaly Detection / Spam Filtering Integration ---
+                combined_text = assessments + " " + interview_questions
+                is_spam = detect_spam(combined_text)
                 return {
                     "program_type": program_type,
                     "Company": custom_company if company == "Other" else company,
@@ -550,7 +584,8 @@ def get_review_form(step):
                     "Semester": semester,
                     "Interview Round": interview_round,
                     "Offer Outcome": outcome,
-                    "Post As": post_option
+                    "Post As": post_option,
+                    "is_spam": is_spam
                 }
             else:
                 for error in errors:
@@ -584,15 +619,13 @@ def onboarding_process():
                     db.collection("reviews").add(review)
 
                 load_data()
-                # Update the onboarding complete flag in Firestore and local session
                 db.collection("users").document(st.session_state.firebase_user["localId"]).update({"onboarding_complete": True})
                 st.session_state.reviews_submitted = 2
-                st.session_state.page = "👤 User Profile"  # Set new page for redirection
-
+                st.session_state.page = "👤 User Profile"
                 st.balloons()
                 st.write("Your reviews have been submitted successfully!")
                 if st.button("Continue to Profile"):
-                    st.stop()  # Force a rerun so that the main flow loads the profile page
+                    st.stop()
             except Exception as e:
                 st.error(f"Failed to save reviews: {str(e)}")
         else:
@@ -609,8 +642,6 @@ def onboarding_process():
 # ----------------------
 # Sidebar Navigation and Page Storage
 # ----------------------
-
-
 if "page" not in st.session_state:
     st.session_state.page = "👤 User Profile"
 
@@ -619,7 +650,7 @@ page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed", "
 
 if page == "Our Vision":
     st.session_state.page = "Our Vision"
-    st.session_state.show_form = False  # reset the edit flag when "Our Vision" is selected
+    st.session_state.show_form = False
 elif st.session_state.get("show_form", False):
     st.session_state.page = "📰 Internship Feed"
 elif profile_completed and not onboarding_complete:
@@ -627,18 +658,8 @@ elif profile_completed and not onboarding_complete:
 else:
     st.session_state.page = page
 
-
-
-
-
-
-
 def our_vision():
     st.title("Our Vision")
-    
-    # Vision Description Section
-   
-    # Vision Description Section
     st.markdown("""
     ### The Internship Process, Finally Made Clear
     
@@ -658,17 +679,10 @@ def our_vision():
     
     **Tools That Keep You in Control**  
     Track your own applications, see how long companies take to respond, learn how many rounds they usually do, and what kinds of questions come up. All based on real experiences.
-    
-    ---
-    
-    Internships are confusing enough — this platform’s here to make them less of a mystery, and way more manageable.
     """)
     
     st.markdown("---")
-
-
     
-    # Feedback Form Section
     st.header("We Value Your Feedback")
     st.markdown("Help us improve by sharing your thoughts and suggestions.")
     
@@ -681,7 +695,6 @@ def our_vision():
             if not feedback_name.strip() or not feedback_email.strip() or not feedback_message.strip():
                 st.error("Please fill out all the fields.")
             else:
-                # Create a dictionary to store the feedback
                 feedback_data = {
                     "name": feedback_name,
                     "email": feedback_email,
@@ -689,16 +702,11 @@ def our_vision():
                     "timestamp": firestore.SERVER_TIMESTAMP
                 }
                 try:
-                    # Store the feedback in the "feedback" collection in Firestore
                     db.collection("feedback").add(feedback_data)
                     st.success("Thank you for your valuable feedback!")
                 except Exception as e:
                     st.error(f"An error occurred while submitting your feedback: {e}")
 
-
-# ----------------------
-# User Profile Page
-# ----------------------
 def user_profile():
     st.subheader("Your Profile Information")
     st.write(f"**Name:** {user_profile_data.get('full_name', 'N/A')}")
@@ -745,7 +753,6 @@ def user_profile():
         st.session_state.applications = edited_df
         save_applications()
     
-    # Display Bookmarked Reviews
     current_user = st.session_state.firebase_user["localId"]
     bookmarked_reviews = [review for review in st.session_state.reviews if current_user in review.get("bookmarkers", [])]
     st.header("Bookmarked Reviews")
@@ -762,7 +769,6 @@ def user_profile():
     else:
         st.write("No bookmarked reviews.")
     
-    # Display Your Reviews with Edit Option
     st.header("Your Reviews")
     user_reviews = [review for review in st.session_state.reviews
                     if review.get("user_id") == st.session_state.firebase_user["localId"]]
@@ -780,18 +786,14 @@ def user_profile():
     else:
         st.write("You have not submitted any reviews yet.")
 
-# ----------------------
-# Internship Feed Page
-# ----------------------
 def internship_feed():
-    # If a review is being edited or added, display the form at the top.
     if st.session_state.get("show_form", False):
         form_container = st.empty()
         with form_container.container():
             review_to_edit = st.session_state.get("review_to_edit")
             review_data = review_form(review_to_edit)
             if review_data:
-                if review_to_edit:  # Editing an existing review.
+                if review_to_edit:
                     doc_id = review_to_edit["id"]
                     save_review(review_data, edit=True, review_doc_id=doc_id)
                 else:
@@ -803,7 +805,6 @@ def internship_feed():
 
     st.header("🎯 Internship Feed")
     
-    # Filtering Section
     all_companies = sorted({review.get("Company", "") for review in st.session_state.reviews if review.get("Company", "")})
     company_options = ["All"] + all_companies
 
@@ -862,6 +863,7 @@ def internship_feed():
                     st.write(f"**Gaming Options:** {', '.join(review.get('Gaming Options', []))}")
                     st.write(f"**Interview Round:** {review.get('Interview Round', 'Unknown')}")
                     st.write(f"**Interview Questions:** {review.get('Interview Questions', 'Unknown')}")
+                    st.write(f"**Spam Flag:** {review.get('is_spam', False)}")
                 st.write(f"**Reviewed by:** {review.get('reviewer_name', 'Anonymous')}")
             with col2:
                 st.write(f"**Outcome:** {review.get('Offer Outcome', 'Unknown')}")
@@ -910,7 +912,6 @@ elif st.session_state.page == "📰 Internship Feed":
 elif st.session_state.page == "Our Vision":
     our_vision()
     
-
 if st.session_state.firebase_user:
     if st.sidebar.button("Logout"):
         st.session_state.clear()
@@ -922,18 +923,15 @@ if st.session_state.firebase_user:
 # ----------------------
 st.markdown("""
     <style>
-        /* Overall Background & Font */
         body {
             background-color: #f0f2f6;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        /* Header Styling */
         .css-18e3th9 {
             font-size: 2.5rem;
             color: #333333;
             font-weight: 600;
         }
-        /* Metric Cards */
         [data-testid="stMetricValue"] {
             font-size: 1.8rem;
             color: #0a3d62;
@@ -942,14 +940,12 @@ st.markdown("""
             font-size: 1rem;
             color: #57606f;
         }
-        /* Data Editor and Expander Styling */
         .stDataFrame, .st-expanderHeader, .css-1d391kg {
             background: #ffffff;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.05);
             padding: 16px;
         }
-        /* Button Styling */
         .stButton>button {
             background-color: #0a3d62;
             color: #ffffff;
@@ -963,7 +959,6 @@ st.markdown("""
             background-color: #084c8d;
             transform: scale(1.03);
         }
-        /* Container Cards */
         .stContainer {
             background-color: #ffffff;
             border-radius: 12px;
@@ -971,7 +966,6 @@ st.markdown("""
             margin: 10px 0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
-        /* Sidebar */
         .css-1lcbmhc {
             background-color: #ffffff;
             border-right: 1px solid #e2e2e2;
