@@ -88,10 +88,20 @@ if 'firebase_user' not in st.session_state:
 query_params = st.query_params
 if "page" in query_params:
     st.session_state.page = query_params["page"][0]
+    
+if not st.session_state.firebase_user:
+    st.info(
+        "Beta Notice: This app is currently in beta testing. It is designed for sharing internship process reviews about companies. "
+        "You no longer need to message each individual person asking 'Did you apply?', 'How was the assessment?', or 'What interview questions were asked?' "
+        "Just post your honest experience to help others make informed decisions."
+    )
 
 # ----------------------
 # Authentication Interface
 # ----------------------
+
+
+
 if not st.session_state.firebase_user:
     st.title("IBA Internship Portal")
     login_tab, register_tab = st.tabs(["Login", "Register"])
