@@ -6,6 +6,47 @@ from datetime import datetime, date
 import requests
 
 # ----------------------
+# Session State Initialization for New Keys
+# ----------------------
+# Ensure new keys are defined even if session_state already exists
+if "edit_review_id" not in st.session_state:
+    st.session_state.edit_review_id = None
+if "firebase_user" not in st.session_state:
+    st.session_state.firebase_user = None
+if "applications" not in st.session_state:
+    st.session_state.applications = pd.DataFrame()
+if "contributions" not in st.session_state:
+    st.session_state.contributions = pd.DataFrame()
+if "bookmarks" not in st.session_state:
+    st.session_state.bookmarks = []
+if "reviews" not in st.session_state:
+    st.session_state.reviews = []
+if "show_form" not in st.session_state:
+    st.session_state.show_form = False
+if "data_loaded" not in st.session_state:
+    st.session_state.data_loaded = False
+if "page" not in st.session_state:
+    st.session_state.page = "👤 User Profile"
+if "dummy" not in st.session_state:
+    st.session_state.dummy = False
+if "show_forgot" not in st.session_state:
+    st.session_state.show_forgot = False
+if "reviews_submitted" not in st.session_state:
+    st.session_state.reviews_submitted = 0
+if "current_review_step" not in st.session_state:
+    st.session_state.current_review_step = 0
+if "review_data" not in st.session_state:
+    st.session_state.review_data = [{} for _ in range(2)]
+if "user_profile" not in st.session_state:
+    st.session_state.user_profile = {}
+if "profile_saved" not in st.session_state:
+    st.session_state.profile_saved = False
+
+query_params = st.query_params
+if "page" in query_params:
+    st.session_state.page = query_params["page"][0]
+
+# ----------------------
 # Firebase Initialization
 # ----------------------
 if not firebase_admin._apps:
@@ -60,34 +101,6 @@ def send_password_reset_email(email):
     else:
         error = response.json().get("error", {}).get("message", "Unknown error")
         raise Exception(error)
-
-# ----------------------
-# Session State Management
-# ----------------------
-if 'firebase_user' not in st.session_state:
-    st.session_state.update({
-        'firebase_user': None,
-        'applications': pd.DataFrame(),
-        'contributions': pd.DataFrame(),
-        'bookmarks': [],
-        'reviews': [],
-        'show_form': False,
-        'edit_review_id': None,   # Changed from edit_review_index to edit_review_id
-        'data_loaded': False,
-        'page': "👤 User Profile",  # Default page
-        'dummy': False,
-        'show_forgot': False,
-        # New state for onboarding reviews
-        'reviews_submitted': 0,
-        'current_review_step': 0,
-        'review_data': [{} for _ in range(2)],
-        'user_profile': {},
-        'profile_saved': False  # Flag for profile saved
-    })
-
-query_params = st.query_params
-if "page" in query_params:
-    st.session_state.page = query_params["page"][0]
 
 # ----------------------
 # Authentication Interface
