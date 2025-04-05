@@ -628,14 +628,7 @@ else:
     st.session_state.page = page
 
 
-if st.session_state.page == "👤 User Profile":
-    user_profile()
-elif st.session_state.page == "📰 Internship Feed":
-    internship_feed()
-elif st.session_state.page == "Onboarding":
-    onboarding()
-elif st.session_state.page == "Our Vision":
-    our_vision()
+
 
 
 
@@ -901,8 +894,11 @@ elif not onboarding_complete or st.session_state.page == "Onboarding":
 
 if st.session_state.page == "👤 User Profile":
     user_profile()
-else:
+elif st.session_state.page == "📰 Internship Feed":
     internship_feed()
+else st.session_state.page == "Our Vision":
+    our_vision()
+    
 
 if st.session_state.firebase_user:
     if st.sidebar.button("Logout"):
