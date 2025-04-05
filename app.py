@@ -609,14 +609,7 @@ def onboarding_process():
 # ----------------------
 # Sidebar Navigation and Page Storage
 # ----------------------
-if st.session_state.page == "👤 User Profile":
-    user_profile()
-elif st.session_state.page == "📰 Internship Feed":
-    internship_feed()
-elif st.session_state.page == "Onboarding":
-    onboarding()
-elif st.session_state.page == "Our Vision":
-    our_vision()
+
 
 if "page" not in st.session_state:
     st.session_state.page = "👤 User Profile"
@@ -635,6 +628,14 @@ else:
     st.session_state.page = page
 
 
+if st.session_state.page == "👤 User Profile":
+    user_profile()
+elif st.session_state.page == "📰 Internship Feed":
+    internship_feed()
+elif st.session_state.page == "Onboarding":
+    onboarding()
+elif st.session_state.page == "Our Vision":
+    our_vision()
 
 
 
