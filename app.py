@@ -6,47 +6,6 @@ from datetime import datetime, date
 import requests
 
 # ----------------------
-# Session State Initialization for New Keys
-# ----------------------
-# Ensure new keys are defined even if session_state already exists
-if "edit_review_id" not in st.session_state:
-    st.session_state.edit_review_id = None
-if "firebase_user" not in st.session_state:
-    st.session_state.firebase_user = None
-if "applications" not in st.session_state:
-    st.session_state.applications = pd.DataFrame()
-if "contributions" not in st.session_state:
-    st.session_state.contributions = pd.DataFrame()
-if "bookmarks" not in st.session_state:
-    st.session_state.bookmarks = []
-if "reviews" not in st.session_state:
-    st.session_state.reviews = []
-if "show_form" not in st.session_state:
-    st.session_state.show_form = False
-if "data_loaded" not in st.session_state:
-    st.session_state.data_loaded = False
-if "page" not in st.session_state:
-    st.session_state.page = "👤 User Profile"
-if "dummy" not in st.session_state:
-    st.session_state.dummy = False
-if "show_forgot" not in st.session_state:
-    st.session_state.show_forgot = False
-if "reviews_submitted" not in st.session_state:
-    st.session_state.reviews_submitted = 0
-if "current_review_step" not in st.session_state:
-    st.session_state.current_review_step = 0
-if "review_data" not in st.session_state:
-    st.session_state.review_data = [{} for _ in range(2)]
-if "user_profile" not in st.session_state:
-    st.session_state.user_profile = {}
-if "profile_saved" not in st.session_state:
-    st.session_state.profile_saved = False
-
-query_params = st.query_params
-if "page" in query_params:
-    st.session_state.page = query_params["page"][0]
-
-# ----------------------
 # Firebase Initialization
 # ----------------------
 if not firebase_admin._apps:
@@ -101,6 +60,34 @@ def send_password_reset_email(email):
     else:
         error = response.json().get("error", {}).get("message", "Unknown error")
         raise Exception(error)
+
+# ----------------------
+# Session State Management
+# ----------------------
+if 'firebase_user' not in st.session_state:
+    st.session_state.update({
+        'firebase_user': None,
+        'applications': pd.DataFrame(),
+        'contributions': pd.DataFrame(),
+        'bookmarks': [],
+        'reviews': [],
+        'show_form': False,
+        'edit_review_index': None,
+        'data_loaded': False,
+        'page': "👤 User Profile",  # Default page
+        'dummy': False,
+        'show_forgot': False,
+        # New state for onboarding reviews
+        'reviews_submitted': 0,
+        'current_review_step': 0,
+        'review_data': [{} for _ in range(2)],
+        'user_profile': {},
+        'profile_saved': False  # Flag for profile saved
+    })
+
+query_params = st.query_params
+if "page" in query_params:
+    st.session_state.page = query_params["page"][0]
 
 # ----------------------
 # Authentication Interface
@@ -264,6 +251,11 @@ def save_review(review_data, edit=False, review_doc_id=None):
         if edit and review_doc_id:
             reviews_ref.document(review_doc_id).update(review_data)
         else:
+            # Ensure new reviews include user_id, reviewer_name, and timestamp so they show under Your Reviews
+            review_data.setdefault('user_id', st.session_state.firebase_user["localId"])
+            review_data.setdefault('reviewer_name', st.session_state.user_profile.get('full_name', 'Anonymous') 
+                                       if review_data.get('Post As') == "Use my full name" else "Anonymous")
+            review_data['timestamp'] = firestore.SERVER_TIMESTAMP
             review_data['upvoters'] = review_data.get('upvoters', [])
             review_data['bookmarkers'] = review_data.get('bookmarkers', [])
             new_doc = reviews_ref.add(review_data)
@@ -313,7 +305,7 @@ def review_form(review_to_edit=None):
     gaming_options_list = [
         "Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
         "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
-        "HackerRank Coding Assessments",  "Behavioral" ,"Technical", "Other"
+        "HackerRank Coding Assessments",  "Behavioral", "Technical", "Other"
     ]
     interview_modes = ["Virtual (Zoom/Teams)", "In-Person", "Digital", "No Interview"]
 
@@ -476,7 +468,7 @@ def review_form(review_to_edit=None):
 def get_review_form(step):
     gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
                            "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
-                           "HackerRank Coding Assessments", "Behavioral" ,"Technical", "Other"]
+                           "HackerRank Coding Assessments", "Behavioral", "Technical", "Other"]
     interview_modes = ["Virtual (Zoom)", "Virtual (Teams)", "In-Person", "Digital", "No Interview"]
     with st.form(key=f"onboarding_review_form_{step}"):
         program_type = st.radio("Program Type", ["MT Program", "Internship"], key=f"program_type_{step}")
@@ -488,7 +480,7 @@ def get_review_form(step):
                 'PepsiCo Pakistan', 'Other'
             ], key=f"company_{step}")
             custom_company = ""
-            if company == 'Other':
+            if company == "Other":
                 custom_company = st.text_input("Custom Company", key=f"custom_company_{step}")
             industry = st.selectbox("Industry", ["Tech", "Finance", "Marketing", "HR", "Other"], key=f"industry_{step}")
             ease_process = st.selectbox("Ease of Process", ["Easy", "Moderate", "Hard"], key=f"ease_{step}")
@@ -518,7 +510,7 @@ def get_review_form(step):
             outcome = st.selectbox("Outcome", ["Accepted", "Rejected", "In Process"], key=f"outcome_{step}")
             post_option = st.radio("Post As", ["Use my full name", "Anonymous"], key=f"post_{step}")
         errors = []
-        if company == 'Other' and not custom_company:
+        if company == "Other" and not custom_company:
             errors.append("Company name required")
         if not interview_questions.strip():
             errors.append("Interview Questions field is required")
@@ -533,7 +525,7 @@ def get_review_form(step):
             if not errors:
                 return {
                     "program_type": program_type,
-                    "Company": custom_company if company == 'Other' else company,
+                    "Company": custom_company if company == "Other" else company,
                     "Industry": industry,
                     "Ease of Process": ease_process,
                     "Gamified Assessments": assessments,
@@ -684,22 +676,19 @@ def user_profile():
     
     # Display Your Reviews with Edit Option
     st.header("Your Reviews")
-    user_reviews = [review for review in st.session_state.reviews
+    user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
                     if review.get("user_id") == st.session_state.firebase_user["localId"]]
     if user_reviews:
-        for review in user_reviews:
+        for i, review in user_reviews:
             col1, col2 = st.columns([8,2])
             reviewer_display = review.get("reviewer_name", "Anonymous")
             col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')}) - {review.get('program_type', 'Unknown')}** - {review.get('Offer Outcome', 'Unknown')}")
             col1.caption(f"Reviewed by: {reviewer_display}")
-            # Use review document ID as key for editing
-            if col2.button("Edit", key=f"edit_{review['id']}"):
-                st.session_state.edit_review_id = review['id']
+            if col2.button("Edit", key=f"edit_{i}"):
+                st.session_state.edit_review_index = i
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
-                st.stop()
-
-
+                st.rerun()
     else:
         st.write("You have not submitted any reviews yet.")
 
@@ -730,30 +719,23 @@ def internship_feed():
     
     if st.button("➕ Add Review"):
         st.session_state.show_form = True
-        st.session_state.edit_review_id = None  # Ensure we're adding a new review
+        st.session_state.edit_review_index = None
     
     review_to_edit = None
-    # Use edit_review_id to locate the review to edit
-    if st.session_state.edit_review_id:
-        for rev in st.session_state.reviews:
-            if rev.get("id") == st.session_state.edit_review_id:
-                review_to_edit = rev
-                break
+    if st.session_state.edit_review_index is not None:
+        review_to_edit = st.session_state.reviews[st.session_state.edit_review_index]
     
     if st.session_state.show_form:
         review_data = review_form(review_to_edit)
         if review_data:
-            # Add timestamp and reviewer name if not an edit (or update if editing)
-            review_data['user_id'] = st.session_state.firebase_user["localId"]
-            review_data['reviewer_name'] = st.session_state.user_profile.get('full_name', 'Anonymous') if review_data.get("Post As") == "Use my full name" else "Anonymous"
-            review_data['timestamp'] = firestore.SERVER_TIMESTAMP
-            if st.session_state.edit_review_id:
-                save_review(review_data, edit=True, review_doc_id=st.session_state.edit_review_id)
+            if st.session_state.edit_review_index is not None:
+                doc_id = st.session_state.reviews[st.session_state.edit_review_index]['id']
+                save_review(review_data, edit=True, review_doc_id=doc_id)
             else:
                 save_review(review_data)
             st.success("Review Submitted!")
             st.session_state.show_form = False
-            st.session_state.edit_review_id = None
+            st.session_state.edit_review_index = None
             st.session_state.page = "📰 Internship Feed"
             st.rerun()
     
