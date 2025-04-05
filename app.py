@@ -71,10 +71,10 @@ if 'firebase_user' not in st.session_state:
         'contributions': pd.DataFrame(),
         'bookmarks': [],
         'reviews': [],
-        'show_form': False,
-        'review_to_edit': None,      # <-- NEW: Store review data for editing
+        'show_form': False,           # Ensure this exists
+        'review_to_edit': None,       # Ensure this exists
         'data_loaded': False,
-        'page': "👤 User Profile",  # Default page
+        'page': "👤 User Profile",    # Default page
         'dummy': False,
         'show_forgot': False,
         # New state for onboarding reviews
@@ -723,8 +723,8 @@ def internship_feed():
     if st.session_state.show_form:
         review_data = review_form(review_to_edit)
         if review_data:
-            if review_to_edit:
-                doc_id = review_to_edit['id']
+            if review_to_edit:  # Editing existing review
+                doc_id = review_to_edit["id"]  # Use the Firestore document ID
                 save_review(review_data, edit=True, review_doc_id=doc_id)
             else:
                 save_review(review_data)
