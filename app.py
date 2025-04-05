@@ -91,7 +91,7 @@ if "page" in query_params:
     
 if not st.session_state.firebase_user:
     st.info(
-        """Beta Notice: Welcome to our beta testing for the internship reviews app! No more sliding into DMs asking “Did you apply?” or “How was the assessment?”
+        """Beta Notice: Welcome to our beta testing for the internship Hiring Process reviews app! No more sliding into DMs asking “Did you apply?” or “How was the assessment?”
 —just spill the tea and let your honest experience shine. We’re here to help you make informed decisions without the gatekeeping drama. So drop your insights, and let’s keep the intern scoop real and unfiltered!"""
     )
 
