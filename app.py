@@ -640,21 +640,32 @@ def our_vision():
    
     # Vision Description Section
     st.markdown("""
-    Welcome to the heart of our platform—where your journey towards a successful internship begins. Our vision is to empower IBA students by transforming the way internships are discovered, experienced, and shared.
+    ### The Internship Process, Finally Made Clear
     
-    **Transparent and Real Experiences:**  
-    Our app is designed to create a trusted space where every application, interview, and review is shared openly. We believe that honest feedback and real stories from peers are the keys to making informed career decisions.
+    Welcome to the space that actually tells you how internships *really* work — no fluff, no fake flexing.
     
-    **Community-Driven Growth:**  
-    By connecting you with fellow students and industry professionals, we foster a community where insights, tips, and support are just a click away. Our platform not only tracks your applications but also enables you to learn from the collective experiences of your peers.
+    ---
     
-    **Innovative Internship Navigation:**  
-    Harnessing the power of intuitive analytics and user-driven feedback, our app simplifies the complexities of the internship process. From tracking your progress to accessing detailed reviews, every feature is crafted to guide you towards success in a competitive environment.
+    **Let’s Talk Process**  
+    This isn’t about who got where. It’s about what happened *before* that — the applications, the rejections, the interviews, the follow-ups (or the ghosting). We’re building a space where students can share how the hiring process actually goes down.
     
-    Let our vision inspire you to embrace every opportunity and step confidently into your professional future.
+    ---
+    
+    **Not Just Success Stories**  
+    We care about the full picture. Whether someone got the offer or didn’t hear back, it’s all useful. You deserve to know what to expect — not just the highlight reel.
+    
+    ---
+    
+    **Tools That Keep You in Control**  
+    Track your own applications, see how long companies take to respond, learn how many rounds they usually do, and what kinds of questions come up. All based on real experiences.
+    
+    ---
+    
+    Internships are confusing enough — this platform’s here to make them less of a mystery, and way more manageable.
     """)
     
     st.markdown("---")
+
 
     
     # Feedback Form Section
