@@ -617,6 +617,7 @@ page = st.sidebar.radio("Go to", ("👤 User Profile", "📰 Internship Feed", "
 
 if page == "Our Vision":
     st.session_state.page = "Our Vision"
+    st.session_state.show_form = False  # reset the edit flag when "Our Vision" is selected
 elif st.session_state.get("show_form", False):
     st.session_state.page = "📰 Internship Feed"
 elif profile_completed and not onboarding_complete:
