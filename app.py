@@ -72,7 +72,7 @@ if 'firebase_user' not in st.session_state:
         'bookmarks': [],
         'reviews': [],
         'show_form': False,
-        'edit_review_index': None,
+        'edit_review_id': None,   # Changed from edit_review_index to edit_review_id
         'data_loaded': False,
         'page': "👤 User Profile",  # Default page
         'dummy': False,
@@ -671,16 +671,17 @@ def user_profile():
     
     # Display Your Reviews with Edit Option
     st.header("Your Reviews")
-    user_reviews = [(i, review) for i, review in enumerate(st.session_state.reviews)
+    user_reviews = [review for review in st.session_state.reviews
                     if review.get("user_id") == st.session_state.firebase_user["localId"]]
     if user_reviews:
-        for i, review in user_reviews:
+        for review in user_reviews:
             col1, col2 = st.columns([8,2])
             reviewer_display = review.get("reviewer_name", "Anonymous")
             col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')}) - {review.get('program_type', 'Unknown')}** - {review.get('Offer Outcome', 'Unknown')}")
             col1.caption(f"Reviewed by: {reviewer_display}")
-            if col2.button("Edit", key=f"edit_{i}"):
-                st.session_state.edit_review_index = i
+            # Use review document ID as key for editing
+            if col2.button("Edit", key=f"edit_{review['id']}"):
+                st.session_state.edit_review_id = review['id']
                 st.session_state.show_form = True  
                 st.session_state.page = "📰 Internship Feed"
                 st.rerun()
@@ -714,23 +715,30 @@ def internship_feed():
     
     if st.button("➕ Add Review"):
         st.session_state.show_form = True
-        st.session_state.edit_review_index = None
+        st.session_state.edit_review_id = None  # Ensure we're adding a new review
     
     review_to_edit = None
-    if st.session_state.edit_review_index is not None:
-        review_to_edit = st.session_state.reviews[st.session_state.edit_review_index]
+    # Use edit_review_id to locate the review to edit
+    if st.session_state.edit_review_id:
+        for rev in st.session_state.reviews:
+            if rev.get("id") == st.session_state.edit_review_id:
+                review_to_edit = rev
+                break
     
     if st.session_state.show_form:
         review_data = review_form(review_to_edit)
         if review_data:
-            if st.session_state.edit_review_index is not None:
-                doc_id = st.session_state.reviews[st.session_state.edit_review_index]['id']
-                save_review(review_data, edit=True, review_doc_id=doc_id)
+            # Add timestamp and reviewer name if not an edit (or update if editing)
+            review_data['user_id'] = st.session_state.firebase_user["localId"]
+            review_data['reviewer_name'] = st.session_state.user_profile.get('full_name', 'Anonymous') if review_data.get("Post As") == "Use my full name" else "Anonymous"
+            review_data['timestamp'] = firestore.SERVER_TIMESTAMP
+            if st.session_state.edit_review_id:
+                save_review(review_data, edit=True, review_doc_id=st.session_state.edit_review_id)
             else:
                 save_review(review_data)
             st.success("Review Submitted!")
             st.session_state.show_form = False
-            st.session_state.edit_review_index = None
+            st.session_state.edit_review_id = None
             st.session_state.page = "📰 Internship Feed"
             st.rerun()
     
