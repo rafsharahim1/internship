@@ -120,7 +120,7 @@ if not st.session_state.firebase_user:
 # Authentication Interface
 # ----------------------
 if not st.session_state.firebase_user:
-    st.title("IBA Internship Portal")
+    st.title(" Truthtern - IBA Internship Portal")
     login_tab, register_tab = st.tabs(["Login", "Register"])
     with login_tab:
         with st.form("login_form"):
