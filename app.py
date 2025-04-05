@@ -286,9 +286,9 @@ def validate_stipend(stipend):
 # New Editable Review Form Function with Pre-Populated Fields
 # ----------------------
 def review_form(review_to_edit=None):
-    # Use a unique key based on whether we're editing an existing review or adding a new one.
+    # Use a unique form key based on whether editing or adding a new review.
     form_key = "edit_review_form" if review_to_edit else "new_review_form"
-    
+
     companies = [
         'Unilever Pakistan', 'Reckitt Benckiser', 'Procter & Gamble',
         'Nestlé Pakistan', 'L’Oréal Pakistan', 'Coca-Cola Pakistan',
@@ -307,7 +307,7 @@ def review_form(review_to_edit=None):
     ]
     interview_modes = ["Virtual (Zoom/Teams)", "In-Person", "Digital", "No Interview"]
 
-    # Set default values if editing an existing review.
+    # Prepare default values if editing an existing review.
     default_program_type = review_to_edit.get("program_type") if review_to_edit else "MT Program"
     default_company = review_to_edit.get("Company") if review_to_edit else companies[0]
     default_industry = review_to_edit.get("Industry") if review_to_edit else "Tech"
@@ -463,7 +463,6 @@ def review_form(review_to_edit=None):
             }
     return None
 
-
 def get_review_form(step):
     gaming_options_list = ["Pymetrics", "Factor Talent Game", "HireVue Game-Based Assessments",
                            "Mettl Situational Judgment Tests (SJTs)", "Codility Code Challenges",
@@ -495,7 +494,6 @@ def get_review_form(step):
             if "Other" in gaming_options and custom_gaming:
                 gaming_options[gaming_options.index("Other")] = custom_gaming
 
-            # NEW: Mode of Interview (multi-select)
             mode_interview = st.multiselect("Mode of Interview (Select one or more) * ", options=interview_modes, key=f"mode_interview_{step}")
             
             interview_questions = st.text_area("Interview Questions", key=f"questions_{step}")
@@ -610,7 +608,6 @@ elif profile_completed and not onboarding_complete:
 else:
     st.session_state.page = page
 
-
 # ----------------------
 # User Profile Page
 # ----------------------
@@ -687,7 +684,6 @@ def user_profile():
             reviewer_display = review.get("reviewer_name", "Anonymous")
             col1.markdown(f"**{review.get('Company', 'Unknown')} ({review.get('Industry', 'Unknown')}) - {review.get('program_type', 'Unknown')}** - {review.get('Offer Outcome', 'Unknown')}")
             col1.caption(f"Reviewed by: {reviewer_display}")
-            # When Edit is clicked, store the review data in session state and switch page
             if col2.button("Edit", key=f"edit_{review.get('id')}"):
                 st.session_state.review_to_edit = review
                 st.session_state.show_form = True  
@@ -700,7 +696,7 @@ def user_profile():
 # Internship Feed Page
 # ----------------------
 def internship_feed():
-    # If a review is being edited or added, display the form at the top of the page.
+    # If a review is being edited or added, display the form at the top.
     if st.session_state.get("show_form", False):
         form_container = st.empty()
         with form_container.container():
@@ -719,7 +715,7 @@ def internship_feed():
 
     st.header("🎯 Internship Feed")
     
-    # Filter reviews based on user input.
+    # Filtering Section
     all_companies = sorted({review.get("Company", "") for review in st.session_state.reviews if review.get("Company", "")})
     company_options = ["All"] + all_companies
 
@@ -730,7 +726,6 @@ def internship_feed():
         program_filter = st.selectbox("Program Type", ["All", "MT Program", "Internship"])
         search_clicked = st.form_submit_button("Search")
     
-    # Default filter values if not searched.
     if not search_clicked:
         company_search = "All"
         industry_filter = "All"
@@ -809,7 +804,6 @@ def internship_feed():
                         review_ref.update({"bookmarkers": firestore.ArrayUnion([user_id])})
                         load_data()
                         st.rerun()
-
 
 # ----------------------
 # Main Flow Control
