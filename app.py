@@ -91,9 +91,8 @@ if "page" in query_params:
     
 if not st.session_state.firebase_user:
     st.info(
-        "Beta Notice: This app is currently in beta testing. It is designed for sharing internship process reviews about companies. "
-        "You no longer need to message each individual person asking 'Did you apply?', 'How was the assessment?', or 'What interview questions were asked?' "
-        "Just post your honest experience to help others make informed decisions."
+        "Beta Notice: Welcome to our beta  testing for internship reviews app! No more sliding into DMs asking “Did you apply?” or “How was the assessment?”
+        —just spill the tea and let your honest experience shine. We’re here to help you make informed decisions without the gatekeeping drama. So drop your insights, and let’s keep the intern scoop real and unfiltered!"
     )
 
 # ----------------------
