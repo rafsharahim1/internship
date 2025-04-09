@@ -625,7 +625,8 @@ def onboarding_process():
                 st.balloons()
                 st.write("Your reviews have been submitted successfully!")
                 if st.button("Continue to Profile"):
-                    st.stop()
+                    st.session_state.page = "📰 Internship Feed" 
+                    st.rerun()
             except Exception as e:
                 st.error(f"Failed to save reviews: {str(e)}")
         else:
